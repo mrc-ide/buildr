@@ -1,0 +1,21 @@
+Package: buildr
+Title: buildr
+Version: 1.0.0
+Author: Rich FitzJohn
+Maintainer: Rich FitzJohn <rich.fitzjohn@gmail.com>
+Description: buildr
+License: MIT + file LICENSE
+LazyData: true
+URL: https://github.com/<gh-username>/buildr
+BugReports: https://github.com/<gh-username>/buildr/issues
+Imports:
+    R6,
+    context,
+    devtools,
+    httpuv,
+    jsonlite,
+    queuer,
+    storr
+Suggests:
+    testthat
+RoxygenNote: 5.0.1
