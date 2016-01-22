@@ -143,7 +143,7 @@ endpoint_binary_filename <- function(obj, dat) {
 endpoint_submit <- function(obj, dat) {
   path <- dat$path_split
   if (dat$verb == "POST" && length(path) == 1L) {
-    tmp <- tempfile()
+    tmp <- file.path(obj$paths$incoming, path)
     writeBin(dat$data, tmp)
     server_response(obj$submit(tmp))
   } else {

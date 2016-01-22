@@ -22,7 +22,7 @@ buildr <- R6::R6Class(
         error=function(e) character(0))
       if (length(id) == 0L) {
         ctx <- context::context_save(self$paths$context, packages="buildr")
-      } else if (lenth(id) == 1L) {
+      } else if (length(id) == 1L) {
         ctx <- context::context_handle(self$paths$context, id)
       } else {
         stop("Mo contexts mo problems")
@@ -56,8 +56,8 @@ buildr <- R6::R6Class(
     ## List source files:
     source=function() {
       hash <- dir(self$paths$source)
-      filename <- vcapply(hash, self$db$get, "buildr__filename")
-      data.frame(hash=hash, filename=filename,
+      filename_source <- vcapply(hash, self$db$get, "buildr__filename")
+      data.frame(hash=hash, filename_source=filename_source,
                  stringsAsFactors=FALSE, row.names=NULL)
     },
 
@@ -261,6 +261,9 @@ buildr_log <- function(fmt, ...) {
 
 buildr_workers_spawn <- function(n, paths, context_id) {
   if (n == 0L) {
+    dir <- sub(paste0(getwd(), "/"), "", paths$context)
+    cmd <- sprintf('queue:::queue_local_worker("%s", "%s")', dir, context_id)
+    message("Start workers with:\n\t", cmd)
     return(NULL)
   }
   logfiles <- file.path(paths$worker_log,
