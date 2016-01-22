@@ -6,17 +6,17 @@ Maintainer: Rich FitzJohn <rich.fitzjohn@gmail.com>
 Description: buildr
 License: MIT + file LICENSE
 LazyData: true
-URL: https://github.com/<gh-username>/buildr
-BugReports: https://github.com/<gh-username>/buildr/issues
+URL: https://github.com/richfitz/buildr
+BugReports: https://github.com/richfitz/buildr/issues
 Imports:
     R6,
+    httr,
+    jsonlite
+Suggests:
     context,
     devtools,
     httpuv,
-    jsonlite,
     parallel,
     queuer,
-    storr
-Suggests:
     testthat
 RoxygenNote: 5.0.1

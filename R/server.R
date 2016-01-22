@@ -12,6 +12,7 @@
 ## terrible.
 buildr_server <- function(path, n_workers,
                           host="0.0.0.0", port=8765, loop=TRUE) {
+  buildr_server_check_packages()
   ## TODO: Advertise the URL in the directory.
   app <- buildr_server_app(path, n_workers)
   base_url <- sprintf("http://%s:%d", host, port)

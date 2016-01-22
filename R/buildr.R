@@ -1,10 +1,14 @@
-## TODO: Need to run a cleanup periodically.  Remove all files older
-## than some number of days, prune the queue, etc.
-
-## TODO: Write out the default current context somewhere in root so
-## workers can attach easily?
-
-TESTING <- TRUE
+buildr_server_check_packages <- function() {
+  required <- c("context", "devtools", "httpuv", "parallel", "queuer")
+  missing <- setdiff(required, .packages(TRUE))
+  if (length(missing) > 0L) {
+    stop(sprintf("missing required packages: %s",
+                 paste(missing, collapse=", ")))
+  }
+  for (i in required) {
+    loadNamespace(i)
+  }
+}
 
 buildr <- R6::R6Class(
   "buildr",
@@ -15,6 +19,7 @@ buildr <- R6::R6Class(
     workers=NULL,
 
     initialize=function(path, n_workers=0L) {
+      buildr_server_check_packages()
       self$paths <- buildr_paths(path, TRUE)
       ## TODO: this could be much nicer in context...
       id <- tryCatch(
@@ -158,7 +163,7 @@ buildr_enqueue <- function(filename, paths, db, obj) {
 ##' @noRd
 build_package <- function(file, root) {
   paths <- buildr_paths(root, FALSE)
-  db <- storr::storr_rds(paths$db)
+  db <- context::context_db(paths$context)
   file <- file.path(paths$source, file)
   stopifnot(file.exists(file))
   hash <- hash_file(file)
@@ -195,11 +200,8 @@ devtools_build <- function(filename, dest) {
   untar(filename, exdir=tmp)
   pkg <- file.path(tmp, dir(tmp))
   dir.create(dest, FALSE, TRUE)
-  if (!TESTING) {
-    devtools::install_deps(pkg)
-  } else {
-    devtools::build(pkg, path=dest, binary=TRUE)
-  }
+  devtools::install_deps(pkg, upgrade=FALSE)
+  devtools::build(pkg, path=dest, binary=TRUE)
 }
 
 package_needs_building <- function(filename, paths, db) {
