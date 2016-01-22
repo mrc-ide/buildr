@@ -10,14 +10,19 @@
 ## parallel is probably ideal because then we'll always shut them down
 ## on exit.  The issue is logging, and the fact that parallel is
 ## terrible.
-buildr_server <- function(path, host="0.0.0.0", port=8765, loop=TRUE) {
+buildr_server <- function(path, n_workers,
+                          host="0.0.0.0", port=8765, loop=TRUE) {
   ## TODO: Advertise the URL in the directory.
-  app <- buildr_server_app(path)
+  app <- buildr_server_app(path, n_workers)
   base_url <- sprintf("http://%s:%d", host, port)
   report_url <- sub("0.0.0.0", "127.0.0.1", base_url, fixed=TRUE)
   buildr_log("Starting server on %s", report_url)
   if (loop) {
-    httpuv::runServer(host, port, app)
+    tryCatch(httpuv::runServer(host, port, app),
+             interrupt=function(e) {
+               message("Catching interrupt and quitting")
+               gc()
+             })
   } else {
     httpuv::startServer(host, port, app)
   }
@@ -30,8 +35,8 @@ buildr_server <- function(path, host="0.0.0.0", port=8765, loop=TRUE) {
 ##   GET  binary/<hash> -> get binary by source hash
 ##   POST submit/filename -> submit package, returning some info
 ##   GET  queue_status -> queue information
-buildr_server_app <- function(path) {
-  obj <- buildr$new(path)
+buildr_server_app <- function(path, n_workers) {
+  obj <- buildr$new(path, n_workers)
 
   list(
     call=function(req) {

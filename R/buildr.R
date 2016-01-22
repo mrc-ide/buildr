@@ -12,16 +12,26 @@ buildr <- R6::R6Class(
     paths=NULL,
     queue=NULL,
     db=NULL,
-    known_done=NULL,
+    workers=NULL,
 
-    initialize=function(path) {
+    initialize=function(path, n_workers=0L) {
       self$paths <- buildr_paths(path, TRUE)
-      ctx <- context::context_save(self$paths$context, packages="buildr")
+      ## TODO: this could be much nicer in context...
+      id <- tryCatch(
+        suppressWarnings(context::contexts_list(self$paths$context)),
+        error=function(e) character(0))
+      if (length(id) == 0L) {
+        ctx <- context::context_save(self$paths$context, packages="buildr")
+      } else if (lenth(id) == 1L) {
+        ctx <- context::context_handle(self$paths$context, id)
+      } else {
+        stop("Mo contexts mo problems")
+      }
       self$queue <- queuer:::queue_local(ctx)
       self$db <- context::context_db(ctx)
 
-      status <- self$queue$tasks_status()
-      self$known_done <- names(status)[status %in% c("COMPLETE", "ERROR")]
+      self$workers <- buildr_workers_spawn(n_workers, self$paths, ctx$id)
+      reg.finalizer(self, buildr_workers_cleanup, TRUE)
     },
 
     submit=function(filename) {
@@ -232,7 +242,8 @@ buildr_paths <- function(root, create=FALSE) {
              incoming=file.path(root, "incoming"),
              source=file.path(root, "source"),
              binary=file.path(root, "binary"),
-             log=file.path(root, "log"))
+             log=file.path(root, "log"),
+             worker_log=file.path(root, "worker_log"))
   if (create) {
     dir_create(paths, FALSE, TRUE)
   } else {
@@ -246,4 +257,40 @@ buildr_paths <- function(root, create=FALSE) {
 
 buildr_log <- function(fmt, ...) {
   message(sprintf(paste0("[%s] ", fmt), Sys.time(), ...))
+}
+
+buildr_workers_spawn <- function(n, paths, context_id) {
+  if (n == 0L) {
+    return(NULL)
+  }
+  logfiles <- file.path(paths$worker_log,
+                        sprintf("%d.%d.log", Sys.getpid(), seq_len(n)))
+  cl <- vector("list", n)
+  pid <- integer(n)
+  for (i in seq_len(n)) {
+    message("Creating worker...", appendLF=FALSE)
+    tmp <- parallel::makeCluster(1L, "PSOCK", outfile=logfiles[[i]])
+    pid[[i]] <- parallel::clusterCall(tmp, Sys.getpid)[[1]]
+    message(pid[[i]])
+    cl[[i]] <- tmp[[1L]]
+  }
+  class(cl) <- c("SOCKcluster", "cluster")
+  attr(cl, "pid") <- as.integer(parallel::clusterCall(cl, Sys.getpid))
+
+  args <- list(paths$context, context_id)
+  for (i in seq_len(n)) {
+    parallel:::sendCall(cl[[i]], queuer:::queue_local_worker, args)
+  }
+
+  cl
+}
+
+buildr_workers_cleanup <- function(object) {
+  if (!is.null(object$workers)) {
+    message("Shutting down workers")
+    tools::pskill(attr(object$workers, "pid"))
+    for (i in seq_along(object$workers)) {
+      try(close(object$workers[[i]]$con), silent=TRUE)
+    }
+  }
 }
