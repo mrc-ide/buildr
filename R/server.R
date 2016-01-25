@@ -115,7 +115,8 @@ parse_req <- function(req) {
 
 endpoint_root <- function(obj, dat) {
   if (dat$verb == "GET") {
-    server_response("This is buildr", type="text/plain")
+    msg <- sprintf("This is buildr %s", as.character(packageVersion("buildr")))
+    server_response(msg, type="text/plain")
   } else {
     server_error()
   }

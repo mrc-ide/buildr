@@ -320,7 +320,7 @@ buildr_workers_cleanup <- function(object) {
 }
 
 buildr_server_check_packages <- function() {
-  required <- c("context", "devtools", "httpuv", "parallel", "queuer")
+  required <- c("context", "devtools", "httpuv", "parallel", "queuer", "seagull")
   missing <- setdiff(required, .packages(TRUE))
   if (length(missing) > 0L) {
     stop(sprintf("missing required packages: %s",

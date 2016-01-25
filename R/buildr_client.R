@@ -12,9 +12,7 @@ buildr_client <- function(host, port=8765) {
 ##' @export
 ##' @rdname buildr_client
 buildr_available <- function(host, port=8765) {
-  cl <- buildr_client(host, port)
-  res <- try(httr::content(httr::GET(cl$base_url), "text", encoding="UTF-8"),
-             silent=TRUE)
+  res <- try(buildr_client(host, port)$ping(), silent=TRUE)
   !inherits(res, "try-error") && any(grepl("buildr", res))
 }
 
@@ -25,6 +23,11 @@ buildr_available <- function(host, port=8765) {
     base_url=NULL,
     initialize=function(host, port) {
       self$base_url <- sprintf("http://%s:%d", host, port)
+    },
+
+    ping=function() {
+      r <- httr::GET(cl$base_url)
+      buildr_http_client_response(r)
     },
 
     packages=function(binary=FALSE) {
