@@ -26,8 +26,7 @@ buildr_available <- function(host, port=8765) {
     },
 
     ping=function() {
-      r <- httr::GET(cl$base_url)
-      buildr_http_client_response(r)
+      buildr_http_client_response(httr::GET(self$base_url))
     },
 
     packages=function(binary=FALSE) {
