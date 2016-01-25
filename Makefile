@@ -50,4 +50,4 @@ vignettes: vignettes/seagull.Rmd
 
 
 # No real targets!
-.PHONY: all test document install vignettes
+.PHONY: all test document install vignettes build

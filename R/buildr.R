@@ -1,16 +1,14 @@
-buildr_server_check_packages <- function() {
-  required <- c("context", "devtools", "httpuv", "parallel", "queuer")
-  missing <- setdiff(required, .packages(TRUE))
-  if (length(missing) > 0L) {
-    stop(sprintf("missing required packages: %s",
-                 paste(missing, collapse=", ")))
-  }
-  for (i in required) {
-    loadNamespace(i)
-  }
+##' Create the buildr workhorse function.  This does most of the hard
+##' work of running the queue, submitting jobs and the like, but it
+##' does not run a loop (see \code{buildr_server} for that).
+##' @title Create buildr object
+##' @inheritParams buildr_server
+##' @export
+buildr <- function(path, n_workers=0L, quiet_workers=FALSE) {
+  .R6_buildr$new(path, n_workers, quiet_workers)
 }
 
-buildr <- R6::R6Class(
+.R6_buildr <- R6::R6Class(
   "buildr",
   public=list(
     paths=NULL,
@@ -18,7 +16,7 @@ buildr <- R6::R6Class(
     db=NULL,
     workers=NULL,
 
-    initialize=function(path, n_workers=0L) {
+    initialize=function(path, n_workers, quiet_workers) {
       buildr_server_check_packages()
       self$paths <- buildr_paths(path, TRUE)
       ## TODO: this could be much nicer in context...
@@ -35,7 +33,8 @@ buildr <- R6::R6Class(
       self$queue <- queuer:::queue_local(ctx)
       self$db <- context::context_db(ctx)
 
-      self$workers <- buildr_workers_spawn(n_workers, self$paths, ctx$id)
+      self$workers <- buildr_workers_spawn(n_workers, self$paths, ctx$id,
+                                           quiet_workers)
       reg.finalizer(self, buildr_workers_cleanup, TRUE)
     },
 
@@ -52,8 +51,8 @@ buildr <- R6::R6Class(
       hash <- vcapply(task_ids, self$db$get, "buildr__id_hash")
       filename <- vcapply(hash, self$db$get, "buildr__filename")
       times <- self$queue$tasks_times(task_ids)
-      cbind(data.frame(hash=hash, filename=filename,
-                       task=task_ids, status=status,
+      cbind(data.frame(hash_source=hash, filename_source=filename,
+                       task_id=task_ids, status=status,
                        stringsAsFactors=FALSE, row.names=NULL),
             times[-1])
     },
@@ -62,18 +61,20 @@ buildr <- R6::R6Class(
     source=function() {
       hash <- dir(self$paths$source)
       filename_source <- vcapply(hash, self$db$get, "buildr__filename")
-      data.frame(hash=hash, filename_source=filename_source,
+      data.frame(hash_source=hash, filename_source=filename_source,
                  stringsAsFactors=FALSE, row.names=NULL)
     },
 
     ## List binary files:
     binary=function() {
-      hash <- dir(self$paths$binary)
-      filename_source <- vcapply(hash, self$db$get, "buildr__filename")
-      filename_binary <- vcapply(hash, function(x)
+      hash_source <- dir(self$paths$binary)
+      filename_source <- vcapply(hash_source, self$db$get, "buildr__filename")
+      filename_binary <- vcapply(hash_source, function(x)
         dir(file.path(self$paths$binary, x)))
-      data.frame(hash=hash, filename_source=filename_source,
-                 filename_binary=filename_binary,
+      hash_binary <- vcapply(filename_binary, function(x)
+        hash_file(file.path(self$paths$binary, x)))
+      data.frame(hash_source=hash_source, filename_source=filename_source,
+                 hash_binary=hash_binary, filename_binary=filename_binary,
                  stringsAsFactors=FALSE, row.names=NULL)
     },
 
@@ -87,9 +88,10 @@ buildr <- R6::R6Class(
         info <- tryCatch(
           self$db$get(hash, "buildr__binary_info"),
           error=function(e) list())
-        c(list(hash=hash, task_id=task_id), info)
+        info$task_id <- task_id
+        info
       } else {
-        list(hash=hash, task_id=NULL)
+        list(hash_source=hash, task_id=NULL)
       }
     },
 
@@ -103,7 +105,7 @@ buildr <- R6::R6Class(
     },
 
     ## Full path to binary (throws if not complete)
-    binary_filename=function(hash) {
+    filename_binary=function(hash) {
       info <- tryCatch(self$db$get(hash, "buildr__binary_info"),
                        error=function(e) NULL)
       if (is.null(info)) {
@@ -136,11 +138,11 @@ buildr_enqueue <- function(filename, paths, db, obj) {
     db$set(hash, t$id, "buildr__hash_id")
     db$set(t$id, hash, "buildr__id_hash")
     buildr_log(" -- task: %s", t$id)
-    ret <- list(hash=hash, build=TRUE, id=t$id)
+    ret <- list(hash_source=hash, build=TRUE, task_id=t$id)
   } else {
     reason <- attr(build, "reason", exact=TRUE)
     buildr_log("Skipping: %s", reason)
-    ret <- list(hash=hash, build=FALSE, reason=reason)
+    ret <- list(hash_source=hash, build=FALSE, reason=reason)
   }
   file.remove(filename)
   ret
@@ -159,8 +161,11 @@ buildr_enqueue <- function(filename, paths, db, obj) {
 ## Unfortunately because of the (current) design of queuer, this needs
 ## to be exported as ::: will be parsed as a compound call.
 ##
+##' Internal build function
+##' @title Internal build function
+##' @param file,root arguments
 ##' @export
-##' @noRd
+##' @keywords internal
 build_package <- function(file, root) {
   paths <- buildr_paths(root, FALSE)
   db <- context::context_db(paths$context)
@@ -178,7 +183,7 @@ build_package <- function(file, root) {
                  filename_source=basename(file),
                  filename_binary=file_bin,
                  hash_source=hash,
-                 hash_binary=buildr:::hash_file(file.path(dest, file_bin)))
+                 hash_binary=hash_file(file.path(dest, file_bin)))
     db$set(hash, info, "buildr__binary_info")
     info
   } else {
@@ -218,7 +223,7 @@ package_needs_building <- function(filename, paths, db) {
     task_id <- db$get(hash, "buildr__hash_id")
     status <- context::task_status(context::task_handle(db, task_id, FALSE))
     if (status == "PENDING") {
-      return(no("already queued"))
+      return(no("already_queued"))
     }
   }
 
@@ -258,25 +263,31 @@ buildr_paths <- function(root, create=FALSE) {
 }
 
 buildr_log <- function(fmt, ...) {
+  oo <- options(digits.secs=3)
+  on.exit(options(oo))
   message(sprintf(paste0("[%s] ", fmt), Sys.time(), ...))
 }
 
-buildr_workers_spawn <- function(n, paths, context_id) {
+buildr_workers_spawn <- function(n, paths, context_id, quiet) {
   if (n == 0L) {
     dir <- sub(paste0(getwd(), "/"), "", paths$context)
     cmd <- sprintf('queue:::queue_local_worker("%s", "%s")', dir, context_id)
     message("Start workers with:\n\t", cmd)
     return(NULL)
   }
-  logfiles <- file.path(paths$worker_log,
-                        sprintf("%d.%d.log", Sys.getpid(), seq_len(n)))
+  if (quiet) {
+    logfiles <- file.path(paths$worker_log,
+                          sprintf("%d.%d.log", Sys.getpid(), seq_len(n)))
+  } else {
+    logfiles <- rep("", n)
+  }
   cl <- vector("list", n)
   pid <- integer(n)
   for (i in seq_len(n)) {
-    message("Creating worker...", appendLF=FALSE)
+    buildr_log("Creating worker...")
     tmp <- parallel::makeCluster(1L, "PSOCK", outfile=logfiles[[i]])
     pid[[i]] <- parallel::clusterCall(tmp, Sys.getpid)[[1]]
-    message(pid[[i]])
+    buildr_log("    pid: %d", pid[[i]])
     cl[[i]] <- tmp[[1L]]
   }
   class(cl) <- c("SOCKcluster", "cluster")
@@ -292,10 +303,30 @@ buildr_workers_spawn <- function(n, paths, context_id) {
 
 buildr_workers_cleanup <- function(object) {
   if (!is.null(object$workers)) {
-    message("Shutting down workers")
-    tools::pskill(attr(object$workers, "pid"))
+    pid <- attr(object$workers, "pid")
+    buildr_log("Shutting down workers: %s", paste(pid, collapse=", "))
+    ok <- tools::pskill(pid) == 0L
+    if (any(!ok)) {
+      nok <- pid[!ok]
+      buildr_log("Possibly failed to kill workers: %s",
+                 paste(nok, collapse=", "))
+    }
+    ## This probably will eventually kill things if the pskill above fails.
     for (i in seq_along(object$workers)) {
       try(close(object$workers[[i]]$con), silent=TRUE)
     }
+    object$workers <- NULL
+  }
+}
+
+buildr_server_check_packages <- function() {
+  required <- c("context", "devtools", "httpuv", "parallel", "queuer")
+  missing <- setdiff(required, .packages(TRUE))
+  if (length(missing) > 0L) {
+    stop(sprintf("missing required packages: %s",
+                 paste(missing, collapse=", ")))
+  }
+  for (i in required) {
+    loadNamespace(i)
   }
 }

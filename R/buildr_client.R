@@ -1,7 +1,24 @@
-buildr_client <- function(host="localhost", port=8765) {
+##' Client for submitting and retrieving packages from a buildr
+##' server.
+##' @title buildr Client
+##' @param host Hostname that the buildr server is running on
+##' @param port Port that the buildr server is running on (the default
+##'   here matches the buildr server default)
+##' @export
+buildr_client <- function(host, port=8765) {
   .R6_buildr_http_client$new(host, port)
 }
 
+##' @export
+##' @rdname buildr_client
+buildr_available <- function(host, port=8765) {
+  cl <- buildr_client(host, port)
+  res <- try(httr::content(httr::GET(cl$base_url), "text", encoding="UTF-8"),
+             silent=TRUE)
+  !inherits(res, "try-error") && any(grepl("buildr", res))
+}
+
+##' @importFrom R6 R6Class
 .R6_buildr_http_client <- R6::R6Class(
   "buildr_http_client",
   public=list(
@@ -28,7 +45,7 @@ buildr_client <- function(host="localhost", port=8765) {
       }
       r <- httr::GET(file.path(self$base_url, "binary", hash))
       dat <- buildr_http_client_response(r)
-      ret <- file.path(dest, self$binary_filename(hash))
+      ret <- file.path(dest, self$filename_binary(hash))
       writeBin(dat, ret)
       ret
     },
@@ -50,13 +67,19 @@ buildr_client <- function(host="localhost", port=8765) {
     ## Try breaking the package and seeing what is returned here.
     wait=function(hash, dest=tempfile(), poll=1, timeout=60) {
       t_end <- Sys.time() + timeout
+      dir.create(dirname(dest), FALSE, TRUE)
+      force(poll)
       repeat {
-        ok <- tryCatch(cl$binary_filename(hash),
+        ok <- tryCatch(self$filename_binary(hash),
                        error=function(e) NULL)
         if (is.null(ok)) {
           if (Sys.time() > t_end) {
-            cat(self$log(hash))
-            stop("Package not created in time")
+            log <- try(cat(self$log(hash)), silent=TRUE)
+            msg <- "Package not created in time"
+            if (inherits(log, "try-error")) {
+              msg <- paste(msg, "(and error getting log)")
+            }
+            stop(msg)
           }
           Sys.sleep(poll)
         } else if (ok == "") {
@@ -74,8 +97,8 @@ buildr_client <- function(host="localhost", port=8765) {
       log
     },
 
-    binary_filename=function(hash) {
-      r <- httr::GET(file.path(self$base_url, "binary_filename", hash))
+    filename_binary=function(hash) {
+      r <- httr::GET(file.path(self$base_url, "filename_binary", hash))
       buildr_http_client_response(r)
     },
 

@@ -1,0 +1,3 @@
+#!/usr/bin/Rscript
+dest <- tempfile("buildr_root_")
+buildr::buildr_server(dest, 1L)

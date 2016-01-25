@@ -10,20 +10,43 @@
 ## parallel is probably ideal because then we'll always shut them down
 ## on exit.  The issue is logging, and the fact that parallel is
 ## terrible.
-buildr_server <- function(path, n_workers,
+
+##' Run a buildr server.  This runs a http server that will listen for
+##' requests to build packages.
+##' @title Run buildr server
+##' @param path Path to store all our files in.  This could get
+##'   reasonably large over time.
+##' @param n_workers Number of workers to spawn.  This can be zero, in
+##'   which case you will have to spawn workers yourself.
+##' @param quiet_workers Make the workers quiet?  If FALSE, the
+##'   workers will log to the directory \code{file.path(path,
+##'   "worker_log")} with one file per worker.  If \code{TRUE} all
+##'   worker output will be interleaved in standard output on this
+##'   terminal (which might get confusing/annoying).
+##' @param host A string that is a valid IPv4 address that is owned by
+##'   this server, or \code{"0.0.0.0"} to listen on all IP addresses.
+##' @param port The port to listen on.
+##' @param loop Run in a loop?  This is generally the right move
+##'   unless you plan on handling requests (with
+##'   \code{httpuv::service} manually).
+##' @export
+buildr_server <- function(path, n_workers, quiet_workers=FALSE,
                           host="0.0.0.0", port=8765, loop=TRUE) {
   buildr_server_check_packages()
   ## TODO: Advertise the URL in the directory.
-  app <- buildr_server_app(path, n_workers)
+  app <- buildr_server_app(path, n_workers, quiet_workers)
   base_url <- sprintf("http://%s:%d", host, port)
   report_url <- sub("0.0.0.0", "127.0.0.1", base_url, fixed=TRUE)
   buildr_log("Starting server on %s", report_url)
   if (loop) {
-    tryCatch(httpuv::runServer(host, port, app),
-             interrupt=function(e) {
-               message("Catching interrupt and quitting")
-               gc()
-             })
+    ## Agressively cleanup the workers here, rather than waiting for gc:
+    cleanup <- function(e) {
+      buildr_workers_cleanup(app$obj)
+    }
+    withCallingHandlers(
+      httpuv::runServer(host, port, app),
+      interrupt=cleanup,
+      error=cleanup)
   } else {
     httpuv::startServer(host, port, app)
   }
@@ -36,20 +59,22 @@ buildr_server <- function(path, n_workers,
 ##   GET  binary/<hash> -> get binary by source hash
 ##   POST submit/filename -> submit package, returning some info
 ##   GET  queue_status -> queue information
-buildr_server_app <- function(path, n_workers) {
-  obj <- buildr$new(path, n_workers)
+buildr_server_app <- function(path, n_workers, quiet_workers) {
+  obj <- buildr(path, n_workers, quiet_workers)
 
   list(
+    obj=obj,
     call=function(req) {
+      buildr_log("[httpd] %s %s", req$REQUEST_METHOD, req$PATH_INFO)
       dat <- parse_req(req)
-      buildr_log("[httpd] %s %s/%s", dat$verb, dat$endpoint, dat$path)
 
       execute <- switch(
         dat$endpoint,
+        "/"=endpoint_root,
         packages=endpoint_packages,
         status=endpoint_status,
         log=endpoint_log,
-        binary_filename=endpoint_binary_filename,
+        filename_binary=endpoint_filename_binary,
         binary=endpoint_binary,
         submit=endpoint_submit,
         queue_status=endpoint_queue_status,
@@ -67,6 +92,9 @@ parse_req <- function(req) {
   endpoint <- sub(re, "\\1", x)
   path <- sub(re, "\\2", x)
   path_split <- strsplit(path, "/", fixed=TRUE)[[1]]
+  if (length(path_split) == 0L) {
+    path <- ""
+  }
 
   ret <- list(verb=verb, endpoint=endpoint,
               path=path, path_split=path_split, req=req)
@@ -85,9 +113,17 @@ parse_req <- function(req) {
   ret
 }
 
+endpoint_root <- function(obj, dat) {
+  if (dat$verb == "GET") {
+    server_response("This is buildr", type="text/plain")
+  } else {
+    server_error()
+  }
+}
+
 endpoint_packages <- function(obj, dat) {
   path <- dat$path_split
-  if (dat$verb == "GET" && length(path) == 1) {
+  if (dat$verb == "GET" && length(path) == 1L) {
     server_response(if (path == "binary") obj$binary() else obj$source())
   } else {
     server_error()
@@ -96,8 +132,8 @@ endpoint_packages <- function(obj, dat) {
 
 endpoint_binary <- function(obj, dat) {
   path <- dat$path_split
-  if (dat$verb == "GET" && length(path) == 1) {
-    filename <- obj$binary_filename(path)
+  if (dat$verb == "GET" && length(path) == 1L) {
+    filename <- obj$filename_binary(path)
     server_response(readBin(filename, raw(), file.size(filename)))
   } else {
     server_error()
@@ -127,14 +163,14 @@ endpoint_log <- function(obj, dat) {
   }
 }
 
-endpoint_binary_filename <- function(obj, dat) {
+endpoint_filename_binary <- function(obj, dat) {
   path <- dat$path_split
   if (dat$verb == "GET" && length(path) == 1L) {
-    binary_filename <- obj$binary_filename(path)
-    if (is.null(binary_filename)) {
+    filename_binary <- obj$filename_binary(path)
+    if (is.null(filename_binary)) {
       server_error("Not found", 404L)
     } else {
-      server_response(basename(binary_filename), type="text/plain")
+      server_response(basename(filename_binary), type="text/plain")
     }
   } else {
     server_error()
