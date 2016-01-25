@@ -172,10 +172,10 @@ build_package <- function(file, root) {
   file <- file.path(paths$source, file)
   stopifnot(file.exists(file))
   hash <- hash_file(file)
-  log <- file.path(paths$log, paste0(hash, ".log"))
+  log <- clean_path(file.path(paths$log, paste0(hash, ".log")))
   dest <- file.path(paths$binary, hash_file(file))
   ok <- system2(system.file("build.R", package="buildr"),
-                c(file, dest), stdout=log, stderr=log)
+                clean_path(c(file, dest)), stdout=log, stderr=log)
 
   if (ok == 0L) {
     file_bin <- dir(dest)
@@ -270,8 +270,8 @@ buildr_log <- function(fmt, ...) {
 
 buildr_workers_spawn <- function(n, paths, context_id, quiet) {
   if (n == 0L) {
-    dir <- sub(paste0(getwd(), "/"), "", paths$context)
-    cmd <- sprintf('queue:::queue_local_worker("%s", "%s")', dir, context_id)
+    dir <- clean_path(sub(paste0(getwd(), "/"), "", paths$context))
+    cmd <- sprintf('queuer:::queue_local_worker("%s", "%s")', dir, context_id)
     message("Start workers with:\n\t", cmd)
     return(NULL)
   }

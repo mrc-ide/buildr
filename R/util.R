@@ -25,3 +25,7 @@ vcapply <- function(X, FUN, ...) {
 read_text <- function(filename) {
   readChar(filename, file.size(filename))
 }
+
+clean_path <- function(x) {
+  gsub("\\", "/", x, fixed=TRUE)
+}
