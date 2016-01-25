@@ -174,8 +174,11 @@ build_package <- function(file, root) {
   hash <- hash_file(file)
   log <- clean_path(file.path(paths$log, paste0(hash, ".log")))
   dest <- file.path(paths$binary, hash_file(file))
-  ok <- system2(system.file("build.R", package="buildr"),
-                clean_path(c(file, dest)), stdout=log, stderr=log)
+
+  rscript <- system.file(R.home(), "bin", "Rscript")
+  args <- c(system.file("build.R", package="buildr"),
+            clean_path(c(file, dest)))
+  ok <- system2(rscript, args, stdout=log, stderr=log)
 
   if (ok == 0L) {
     file_bin <- dir(dest)
