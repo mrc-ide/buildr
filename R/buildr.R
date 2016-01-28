@@ -150,13 +150,15 @@ buildr_enqueue <- function(filename, paths, db, obj) {
 
 
 ## This is the main entrypoint that the queue hits.  There needs to be
-## a shell out here to capture all output unless devtools can get
-## patched to redirect correctly.  This does mean we have a _lot_ of R
+## a shell out here to capture all output because the underlying
+## command use system() and that does not respect sink() redirects.
+##
+## This does mean we have a _lot_ of R
 ## processes running at once;
 ## - master
 ## - worker
 ##   - the system call here
-##     - the R CMD system call spawned by devtools
+##     - the R CMD system call spawned as each package is installed
 ##
 ## Unfortunately because of the (current) design of queuer, this needs
 ## to be exported as ::: will be parsed as a compound call.
@@ -200,16 +202,6 @@ build_package <- function(file, root) {
     class(err) <- c("build_error", "error", "condition")
     stop(err)
   }
-}
-
-## This is the main entry point that the script will use.
-devtools_build <- function(filename, dest) {
-  tmp <- tempfile()
-  untar(filename, exdir=tmp)
-  pkg <- file.path(tmp, dir(tmp))
-  dir.create(dest, FALSE, TRUE)
-  devtools::install_deps(pkg, upgrade=FALSE)
-  devtools::build(pkg, path=dest, binary=TRUE)
 }
 
 package_needs_building <- function(filename, paths, db) {
@@ -323,7 +315,7 @@ buildr_workers_cleanup <- function(object) {
 }
 
 buildr_server_check_packages <- function() {
-  required <- c("context", "devtools", "httpuv", "parallel", "queuer", "seagull")
+  required <- c("context", "httpuv", "parallel", "queuer", "seagull")
   missing <- setdiff(required, .packages(TRUE))
   if (length(missing) > 0L) {
     stop(sprintf("missing required packages: %s",

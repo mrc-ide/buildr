@@ -5,4 +5,4 @@ if (length(args) != 2L) {
 }
 file <- args[[1L]]
 dest <- args[[2L]]
-filename <- buildr:::devtools_build(file, dest)
+filename <- buildr:::build_binary(file, dest)
