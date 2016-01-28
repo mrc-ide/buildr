@@ -50,9 +50,14 @@ buildr <- function(path, n_workers=0L, quiet_workers=FALSE) {
       task_ids <- names(status)
       hash <- vcapply(task_ids, self$db$get, "buildr__id_hash")
       filename <- vcapply(hash, self$db$get, "buildr__filename")
+      ## NOTE: We have to reorder because queuer always sorts times
+      ## (which is probably what we do want here).
       times <- self$queue$tasks_times(task_ids)
-      cbind(data.frame(hash_source=hash, filename_source=filename,
-                       task_id=task_ids, status=status,
+      i <- match(times[[1]], task_ids)
+      cbind(data.frame(hash_source=hash[i],
+                       filename_source=filename[i],
+                       task_id=task_ids[i],
+                       status=status[i],
                        stringsAsFactors=FALSE, row.names=NULL),
             times[-1])
     },
