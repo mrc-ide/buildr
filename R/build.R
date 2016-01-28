@@ -5,6 +5,10 @@ build_binary <- function(filename, dest) {
 }
 
 install_deps <- function(filename, suggests=FALSE, ..., lib=.libPaths()[[1]]) {
+  r <- getOption("repos")
+  r[["CRAN"]] <- "https://cran.rstudio.com"
+  oo <- options(repos=r)
+  on.exit(options(oo))
   deps <- get_deps(extract_DESCRIPTION(filename), suggests)
   needed <- setdiff(deps, .packages(TRUE, union(lib, .libPaths())))
   if (length(needed)) {
