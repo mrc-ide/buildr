@@ -5,6 +5,8 @@
 ##' @param config Configuation options; a list with options "host"
 ##'   (required), port, poll and timeout (all optional and passed to
 ##'   \code{\link{buildr_client}} and \code{buildr_client$wait}).
+##'   Alternatively, if \code{config=FALSE}, this will build binaries
+##'   using your system directly rather than using a build server.
 ##'
 ##' @param dest A directory to place generated files.
 ##' @export
@@ -16,8 +18,9 @@ build_binaries <- function(filenames, config, dest=tempfile()) {
   }
   dir.create(dest, FALSE, TRUE)
   if (is.character(config)) {
-    if (identical(config, "local")) {
-      return(build_binaries_local(filenames))
+    if (identical(config, FALSE)) {
+      ## This might not do the best thing with stdout.
+      return(vcapply(filenames, do_build_binary, dest))
     } else {
       config <- list(host=config)
     }
