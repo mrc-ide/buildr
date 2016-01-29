@@ -67,7 +67,7 @@ buildr_available <- function(host, port=8765) {
     ## but wait.
     ##
     ## Try breaking the package and seeing what is returned here.
-    wait=function(hash, dest=tempfile(), poll=1, timeout=60) {
+    wait=function(hash, dest=tempfile(), poll=1, timeout=60, verbose=TRUE) {
       t_end <- Sys.time() + timeout
       dir.create(dirname(dest), FALSE, TRUE)
       force(poll)
@@ -82,6 +82,9 @@ buildr_available <- function(host, port=8765) {
               msg <- paste(msg, "(and error getting log)")
             }
             stop(msg)
+          }
+          if (verbose) {
+            message(".", appendLF=FALSE)
           }
           Sys.sleep(poll)
         } else if (ok == "") {

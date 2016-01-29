@@ -29,3 +29,7 @@ read_text <- function(filename) {
 clean_path <- function(x) {
   gsub("\\", "/", x, fixed=TRUE)
 }
+
+`%or%` <- function(a, b) {
+  if (is.null(a)) b else a
+}
