@@ -20,6 +20,9 @@ build_binaries <- function(filenames, config, dest=tempfile()) {
   if (is.character(config)) {
     if (identical(config, FALSE)) {
       ## This might not do the best thing with stdout.
+      ##
+      ## TODO: we should advertise the desired binary type (here and
+      ## in the server) so that the correct type is always created.
       return(vcapply(filenames, do_build_binary, dest))
     } else {
       config <- list(host=config)
