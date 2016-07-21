@@ -7,3 +7,4 @@
 ^ignore$
 ^buildr_.*\.tar\.gz$
 ^buildr.Rcheck$
+^inst/*\.pyc$
