@@ -13,9 +13,5 @@ Imports:
     httr,
     jsonlite
 Suggests:
-    context,
-    httpuv,
-    parallel,
-    queuer,
     testthat
 RoxygenNote: 5.0.1

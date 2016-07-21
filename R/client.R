@@ -35,19 +35,35 @@ buildr_available <- function(host, port=8765) {
       buildr_http_client_response(r, empty=character(0))
     },
 
-    status=function(hash) {
+    status=function(hash=NULL) {
+      if (is.null(hash)) {
+        hash <- "queue"
+      }
       r <- httr::GET(file.path(self$base_url, "status", hash))
       buildr_http_client_response(r)
     },
 
-    binary=function(hash, dest=tempfile()) {
+    info=function(hash) {
+      r <- httr::GET(file.path(self$base_url, "info", hash))
+      buildr_http_client_response(r)
+    },
+
+    log=function(hash) {
+      r <- httr::GET(file.path(self$base_url, "log", hash))
+      log <- buildr_http_client_response(r)
+      class(log) <- "build_log"
+      log
+    },
+
+    download=function(hash, dest=tempfile(), binary=TRUE) {
       dir.create(dest, FALSE, TRUE)
       if (!file.info(dest, extra_cols=FALSE)[["isdir"]]) {
         stop("dest must be a directory")
       }
-      r <- httr::GET(file.path(self$base_url, "binary", hash))
+      type <- if (binary) "binary" else "source"
+      r <- httr::GET(file.path(self$base_url, "download", hash, type))
       dat <- buildr_http_client_response(r)
-      ret <- file.path(dest, self$filename_binary(hash))
+      ret <- file.path(dest, self$info(hash)[[paste0("filename_", type)]])
       writeBin(dat, ret)
       ret
     },
@@ -61,21 +77,20 @@ buildr_available <- function(host, port=8765) {
       buildr_http_client_response(r)
     },
 
-    ## This is not quite the right response because we really want to
-    ## do the right thing on error too.  Because R will handle the
-    ## requests one after another we can't really do much about this
-    ## but wait.
-    ##
-    ## Try breaking the package and seeing what is returned here.
+    upgrade=function() {
+      ## This should possibly be key protected I think?
+      r <- httr::PATCH(file.path(self$base_url, "upgrade"))
+      buildr_http_client_response(r)
+    },
+
     wait=function(hash, dest=tempfile(), poll=1, timeout=60, verbose=TRUE) {
-      t_end <- Sys.time() + timeout
       dir.create(dirname(dest), FALSE, TRUE)
-      force(poll)
+      times_up <- time_checker(timeout)
       repeat {
-        ok <- tryCatch(self$filename_binary(hash),
-                       error=function(e) NULL)
-        if (is.null(ok)) {
-          if (Sys.time() > t_end) {
+        info <- tryCatch(self$info(hash),
+                         error=function(e) NULL)
+        if (is.null(info)) {
+          if (times_up()) {
             log <- try(cat(self$log(hash)), silent=TRUE)
             msg <- "Package not created in time"
             if (inherits(log, "try-error")) {
@@ -87,33 +102,20 @@ buildr_available <- function(host, port=8765) {
             message(".", appendLF=FALSE)
           }
           Sys.sleep(poll)
-        } else if (ok == "") {
+        } else if (is.null(info$filename_binary)) {
           stop(sprintf("Build failed; see '$log(\"%s\")' for details", hash))
         } else {
-          return(self$binary(hash, dest))
+          return(self$download(hash, dest))
         }
       }
-    },
-
-    log=function(hash) {
-      r <- httr::GET(file.path(self$base_url, "log", hash))
-      log <- buildr_http_client_response(r)
-      class(log) <- "build_log"
-      log
-    },
-
-    filename_binary=function(hash) {
-      r <- httr::GET(file.path(self$base_url, "filename_binary", hash))
-      buildr_http_client_response(r)
-    },
-
-    queue_status=function() {
-      r <- httr::GET(file.path(self$base_url, "queue_status"))
-      buildr_http_client_response(r)
     }))
 
 ##' @export
 print.build_log <- function(x, ...) {
+  n <- length(x)
+  if (n > 0) {
+    x[[n]] <- sub("\\n+$", "", x[[n]])
+  }
   writeLines(x)
 }
 
@@ -133,5 +135,13 @@ buildr_http_client_response <- function(r, empty=list()) {
 }
 
 from_json <- function(x, empty=list()) {
-  if (x == "[]") empty else jsonlite::fromJSON(x)
+  if (grepl("^\\s*\\[\\]\\s*", x)) empty else jsonlite::fromJSON(x)
+}
+
+time_checker <- function(timeout) {
+  t0 <- Sys.time()
+  timeout <- as.difftime(timeout, units="secs")
+  function() {
+    Sys.time() - t0 > timeout
+  }
 }
