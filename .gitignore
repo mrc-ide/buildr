@@ -4,3 +4,4 @@
 buildr.Rcheck
 buildr_*.tar.gz
 *.pyc
+tests/testthat/test_servers

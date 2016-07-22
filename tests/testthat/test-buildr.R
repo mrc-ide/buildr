@@ -2,68 +2,71 @@ context("buildr")
 
 test_that("buildr", {
   skip_on_travis()
-  skip_if_no_buildr()
-  Sys.setenv("R_TESTS" = "")
+  skip_if_no_buildr(9999L)
+
   filename <-
     download_file("https://github.com/richfitz/kitten/archive/master.tar.gz",
                   file.path(tempdir(), "kitten.tar.gz"), TRUE)
 
-  cl <- buildr_client("localhost")
+  cl <- buildr_client("localhost", 9999L)
+
+  expect_match(cl$ping(), "^This is buildr")
 
   expect_equal(cl$packages(), character(0))
   expect_equal(cl$packages(TRUE), character(0))
+  expect_equal(cl$packages(FALSE, TRUE), character(0))
+  expect_equal(cl$packages(TRUE, TRUE), character(0))
+  expect_equal(cl$status(), character(0))
+  expect_null(cl$active())
 
-  res <- cl$submit(filename)
-  res2 <- cl$submit(filename)
+  id <- cl$submit(filename)
+  id2 <- cl$submit(filename)
+  ac <- cl$active()
 
-  expect_true(res$build)
-  expect_equal(res$hash_source, hash_file(normalizePath(filename)))
-  expect_is(res$task_id, "character")
+  expect_equal(id, hash_file(filename))
+  expect_identical(id2, id)
+  expect_identical(ac, id)
 
-  expect_false(res2$build)
-  expect_equal(res2$reason, "already_queued")
+  ans <- cl$wait(id, timeout=3, verbose=FALSE)
+  expect_true(file.exists(ans))
 
-  tmp <- cl$packages()
-  expect_is(tmp, "data.frame")
-  expect_equal(tmp$hash_source, res$hash_source)
-  expect_equal(tmp$filename_source, basename(filename))
+  expect_equal(cl$packages(), id)
+  expect_equal(cl$packages(TRUE), id)
+  expect_equal(cl$packages(translate=TRUE), basename(filename))
+  expect_equal(cl$packages(TRUE, translate=TRUE), basename(ans))
 
-  ign <- cl$wait(res$hash_source, poll=0.1, timeout=3)
+  expect_equal(cl$status(id), "COMPLETE")
+  expect_equal(cl$status(), character(0))
 
-  status <- cl$status(res$hash_source)
-  expect_true(status$success)
-  expect_equal(status[c("hash", "task_id")],
-               res[c("hash", "task_id")])
-
-  expect_is(status$hash_binary, "character")
-  expect_is(status$filename_binary, "character")
-
-  filename_binary <- cl$filename_binary(res$hash_source)
-  expect_equal(filename_binary, status$filename_binary)
-
-  qst <- cl$queue_status()
-  expect_is(qst, "data.frame")
-  expect_equal(nrow(qst), 1L)
-
-  expect_equal(cl$packages(), tmp)
-  tmp2 <- cl$packages(TRUE)
-  expect_equal(tmp2$filename_binary, status$filename_binary)
-
-  log <- cl$log(res$hash_source)
+  log <- cl$log(id)
   expect_is(log, "build_log")
-  expect_equal(length(log), 1L)
-  expect_match(log, "installing *source* package", fixed=TRUE)
+  expect_match(log, "DONE")
 
-  f <- cl$binary(res$hash_source)
-  expect_true(file.exists(f))
+  log <- cl$log("queue")
+  expect_is(log, "data.frame")
+  expect_equal(log$message[1:3], c("starting", "queuing", "starting"))
+  expect_true("skipping" %in% log$message)
+})
 
-  ## temporary lib:
-  tmp <- tempfile()
-  dir.create(tmp)
-  install.packages(f, repos=NULL, lib=tmp)
-  expect_equal(.packages(TRUE, tmp), "kitten")
+test_that("upgrade doesn't crash", {
+  skip_on_travis()
+  skip_if_no_buildr(9999L)
 
-  res2 <- cl$submit(filename)
-  expect_false(res2$build)
-  expect_equal(res2$reason, "up_to_date")
+  cl <- buildr_client("localhost", 9999L)
+  cl$upgrade()
+  wait_until_finished(cl, 10, .25)
+  expect_match(cl$ping(), "^This is buildr")
+})
+
+test_that("reset works", {
+  skip_on_travis()
+  skip_if_no_buildr(9999L)
+
+  cl <- buildr_client("localhost", 9999L)
+  expect_true(length(cl$packages()) > 0L)
+  r <- httr::PATCH(file.path(cl$base_url, "reset"))
+  expect_true(buildr_http_client_response(r))
+  wait_until_finished(cl, 30, 1)
+  expect_match(cl$ping(), "^This is buildr")
+  expect_equal(cl$packages(), character(0))
 })

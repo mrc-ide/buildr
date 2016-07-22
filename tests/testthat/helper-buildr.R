@@ -1,5 +1,5 @@
-skip_if_no_buildr <- function() {
-  if (buildr_available("localhost")) {
+skip_if_no_buildr <- function(port=8765) {
+  if (buildr_available("localhost", port)) {
     return()
   }
   skip("buildr not running")
@@ -20,4 +20,19 @@ DownloadError <- function(url, code) {
   msg <- sprintf("Downloading %s failed with code %d", url, code)
   structure(list(message=msg, call=NULL),
             class=c("DownloadError", "error", "condition"))
+}
+
+wait_until_finished <- function(cl, timeout, poll) {
+  times_up <- time_checker(timeout)
+  repeat {
+    ac <- cl$active()
+    if (is.null(ac)) {
+      return()
+    } else if (times_up()) {
+      stop("server never finished in time :(")
+    } else {
+      message("*", appendLF=FALSE)
+      Sys.sleep(poll)
+    }
+  }
 }

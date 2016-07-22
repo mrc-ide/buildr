@@ -8,3 +8,4 @@
 ^buildr_.*\.tar\.gz$
 ^buildr.Rcheck$
 ^inst/*\.pyc$
+^tests/testthat/test_servers$
