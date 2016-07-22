@@ -57,15 +57,21 @@ class Buildr:
         # should spawn R here to check packages I think, and set up a
         # temporary library, as we don't want to fuck up the main one.
         self.paths = paths(path)
+        self.active = None
+        self.lib_host = os.environ['R_LIBS_USER']
+        self.reset()
+
+    def reset(self):
         for p in self.paths.itervalues():
             dir_create(p)
+        # If this fails, it's all bad.
+        os.environ['R_LIBS_USER'] = self.lib_host
         code = subprocess.call(
             ['Rscript', '-e', 'buildr:::bootstrap("%s")' % self.paths['lib']])
         if code != 0:
             raise Exception('Error running bootstrap script')
         os.environ['R_LIBS_USER'] = self.paths['lib']
         self.queue = []
-        self.active = None
         self.log('buildr', 'starting')
 
     def package_status(self, package_id):
@@ -110,22 +116,35 @@ class Buildr:
             self.queue.append(package_id)
         return package_id
 
-    def queue_upgrade(self):
+    def queue_special(self, special):
         run = False
-        if 'upgrade' in self.queue:
-            self.log('upgrade', 'skipping - already queued')
-        elif self.active and self.active['id'] is not 'upgrade':
-            self.log('upgrade', 'skipping - already running')
+        if special in self.queue:
+            self.log(special, 'skipping - already queued')
+        elif self.active and self.active['id'] is not special:
+            self.log(special, 'skipping - already running')
         else:
             run = True
-            self.log('upgrade', 'queuing')
-            self.queue.insert(0, 'upgrade')
+            self.log(special, 'queuing')
+            self.queue.insert(0, special)
         return run
 
     def run_upgrade(self):
+        # NOTE: does not use _any_ non-base packages/functions because
+        # otherwise we'd get file locking issues on windows.
         args = ['Rscript', '-e',
                 'update.packages("%s", ask=FALSE)' % self.paths['lib']]
         return process('upgrade', args, None)
+
+    def run_reset(self):
+        shutil.rmtree(self.paths['info'])
+        shutil.rmtree(self.paths['filename'])
+        shutil.rmtree(self.paths['lib'])
+        shutil.rmtree(self.paths['source'])
+        shutil.rmtree(self.paths['binary'])
+        shutil.rmtree(self.paths['log'])
+        shutil.rmtree(self.paths['incoming'])
+        self.queue = []
+        self.log('buildr', 'reset')
 
     def run_build(self, package_id):
         args = ['Rscript', '-e',

@@ -81,6 +81,13 @@ def submit(package_name):
 def upgrade():
     return flask.jsonify(obj.queue_upgrade())
 
+# TODO: ths should have a pin on it or something.  That's pretty
+# annoying to get right but would be useful.  But we're assuming here
+# that we're running in a non-hostile environment.
+@app.route("/reset", methods=["PATCH"])
+def reset():
+    return flask.jsonify(obj.queue_special('reset'))
+
 @app.after_request
 def process_queue(response):
     obj.run()
