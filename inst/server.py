@@ -13,7 +13,14 @@ app = flask.Flask(__name__)
 def index():
     return flask.jsonify('This is buildr')
 
-@app.route("/packages/<package_type>")
+@app.route('/active')
+def active():
+    x = app.buildr.active
+    if x is not None:
+        x = x['id']
+    return flask.jsonify(x)
+
+@app.route('/packages/<package_type>')
 def packages(package_type):
     check_package_type(package_type)
     translate = flask.request.args.get('translate').lower() == 'true'

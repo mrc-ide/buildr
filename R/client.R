@@ -29,6 +29,11 @@ buildr_available <- function(host, port=8765) {
       buildr_http_client_response(httr::GET(self$base_url))
     },
 
+    active=function() {
+      buildr_http_client_response(httr::GET(file.path(self$base_url, "active")),
+                                  empty=NULL)
+    },
+
     packages=function(binary=FALSE, translate=FALSE) {
       type <- if (binary) "binary" else "source"
       query <- list(translate = tolower(as.character(translate)))
