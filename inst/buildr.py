@@ -57,22 +57,27 @@ class Buildr:
         # should spawn R here to check packages I think, and set up a
         # temporary library, as we don't want to fuck up the main one.
         self.paths = paths(path)
-        self.active = None
         self.lib_host = os.environ['R_LIBS_USER']
         self.reset()
 
-    def reset(self):
+    def reset(self, async=False):
         for p in self.paths.itervalues():
             dir_create(p)
         # If this fails, it's all bad.
         os.environ['R_LIBS_USER'] = self.lib_host
-        code = subprocess.call(
-            ['Rscript', '-e', 'buildr:::bootstrap("%s")' % self.paths['lib']])
-        if code != 0:
-            raise Exception('Error running bootstrap script')
+        args = ['Rscript', '-e',
+                'buildr:::bootstrap("%s")' % self.paths['lib']]
+        if async:
+            self.active = process('active', args, None)
+        else:
+            code = subprocess.call(args)
+            if code != 0:
+                raise Exception('Error running bootstrap script')
+            self.active = None
         os.environ['R_LIBS_USER'] = self.paths['lib']
         self.queue = []
         self.log('buildr', 'starting')
+        return self.active
 
     def package_list(self, package_type, translate):
         pkgs = os.listdir(self.paths[package_type])
@@ -119,7 +124,9 @@ class Buildr:
             f.write(os.path.basename(filename))
         filename_source = os.path.join(self.paths['source'], package_id)
         filename_binary = os.path.join(self.paths['binary'], package_id)
-        if os.path.exists(filename_binary) or package_id in self.queue:
+        if os.path.exists(filename_binary) or \
+           package_id in self.queue or \
+           (self.active and self.active['id'] == package_id):
             self.log(package_id, 'skipping')
         else:
             shutil.copyfile(filename, filename_source)
@@ -154,8 +161,7 @@ class Buildr:
         shutil.rmtree(self.paths['binary'])
         shutil.rmtree(self.paths['log'])
         shutil.rmtree(self.paths['incoming'])
-        self.queue = []
-        self.log('buildr', 'reset')
+        return self.reset(True)
 
     def run_build(self, package_id):
         args = ['Rscript', '-e',
@@ -182,6 +188,8 @@ class Buildr:
             self.log(id, 'starting')
             if id == 'upgrade':
                 self.active = self.run_upgrade()
+            elif id == 'reset':
+                self.active = self.run_reset()
             else:
                 self.active = self.run_build(id)
 
