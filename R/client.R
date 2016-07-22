@@ -41,24 +41,24 @@ buildr_available <- function(host, port=8765) {
       buildr_http_client_response(r, empty=character(0))
     },
 
-    status=function(hash=NULL) {
-      if (is.null(hash)) {
-        hash <- "queue"
+    status=function(package_id=NULL) {
+      if (is.null(package_id)) {
+        package_id <- "queue"
       }
-      r <- httr::GET(file.path(self$base_url, "status", hash))
+      r <- httr::GET(file.path(self$base_url, "status", package_id))
       buildr_http_client_response(r, empty=character(0))
     },
 
-    info=function(hash) {
-      r <- httr::GET(file.path(self$base_url, "info", hash))
+    info=function(package_id) {
+      r <- httr::GET(file.path(self$base_url, "info", package_id))
       buildr_http_client_response(r)
     },
 
-    log=function(hash, n=NULL) {
+    log=function(package_id, n=NULL) {
       query <- if (is.null(n)) NULL else list(n = n)
-      r <- httr::GET(file.path(self$base_url, "log", hash), query=query)
+      r <- httr::GET(file.path(self$base_url, "log", package_id), query=query)
       log <- buildr_http_client_response(r)
-      if (hash == "queue") {
+      if (package_id == "queue") {
         log <- parse_queue_log(log)
       } else {
         class(log) <- "build_log"
@@ -66,15 +66,15 @@ buildr_available <- function(host, port=8765) {
       log
     },
 
-    download=function(hash, dest=tempfile(), binary=TRUE) {
+    download=function(package_id, dest=tempfile(), binary=TRUE) {
       dir.create(dest, FALSE, TRUE)
       if (!file.info(dest, extra_cols=FALSE)[["isdir"]]) {
         stop("dest must be a directory")
       }
       type <- if (binary) "binary" else "source"
-      r <- httr::GET(file.path(self$base_url, "download", hash, type))
+      r <- httr::GET(file.path(self$base_url, "download", package_id, type))
       dat <- buildr_http_client_response(r)
-      ret <- file.path(dest, self$info(hash)[[paste0("filename_", type)]])
+      ret <- file.path(dest, self$info(package_id)[[paste0("filename_", type)]])
       writeBin(dat, ret)
       ret
     },
@@ -94,15 +94,16 @@ buildr_available <- function(host, port=8765) {
       buildr_http_client_response(r)
     },
 
-    wait=function(hash, dest=tempfile(), poll=1, timeout=60, verbose=TRUE) {
+    wait=function(package_id, dest=tempfile(), poll=1, timeout=60,
+                  verbose=TRUE) {
       dir.create(dirname(dest), FALSE, TRUE)
       times_up <- time_checker(timeout)
       repeat {
-        info <- tryCatch(self$info(hash),
+        info <- tryCatch(self$info(package_id),
                          error=function(e) NULL)
         if (is.null(info)) {
           if (times_up()) {
-            log <- try(cat(self$log(hash)), silent=TRUE)
+            log <- try(cat(self$log(package_id)), silent=TRUE)
             msg <- "Package not created in time"
             if (inherits(log, "try-error")) {
               msg <- paste(msg, "(and error getting log)")
@@ -114,9 +115,10 @@ buildr_available <- function(host, port=8765) {
           }
           Sys.sleep(poll)
         } else if (is.null(info$filename_binary)) {
-          stop(sprintf("Build failed; see '$log(\"%s\")' for details", hash))
+          stop(sprintf("Build failed; see '$log(\"%s\")' for details",
+                       package_id))
         } else {
-          return(self$download(hash, dest))
+          return(self$download(package_id, dest))
         }
       }
     }))
