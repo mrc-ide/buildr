@@ -46,7 +46,7 @@ buildr_available <- function(host, port=8765) {
         hash <- "queue"
       }
       r <- httr::GET(file.path(self$base_url, "status", hash))
-      buildr_http_client_response(r)
+      buildr_http_client_response(r, empty=character(0))
     },
 
     info=function(hash) {
@@ -58,7 +58,11 @@ buildr_available <- function(host, port=8765) {
       query <- if (is.null(n)) NULL else list(n = n)
       r <- httr::GET(file.path(self$base_url, "log", hash), query=query)
       log <- buildr_http_client_response(r)
-      class(log) <- "build_log"
+      if (hash == "queue") {
+        log <- parse_queue_log(log)
+      } else {
+        class(log) <- "build_log"
+      }
       log
     },
 
@@ -151,4 +155,14 @@ time_checker <- function(timeout) {
   function() {
     Sys.time() - t0 > timeout
   }
+}
+
+parse_queue_log <- function(x) {
+  x <- strsplit(x, "\n", fixed=TRUE)[[1]]
+  re <- "^\\[([^\\]+)\\] \\(([^)]+)\\) (.*)$"
+  all(grepl(re, x))
+  data.frame(time=trimws(sub(re, "\\1", x)),
+             id=trimws(sub(re, "\\2", x)),
+             message=trimws(sub(re, "\\3", x)),
+             stringsAsFactors=FALSE)
 }
