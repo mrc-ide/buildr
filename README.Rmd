@@ -1,0 +1,84 @@
+```{r, setup, echo = FALSE, message = FALSE, results = "hide"}
+knitr::opts_chunk$set(
+  tidy = FALSE,
+  error = FALSE,
+  fig.width = 8,
+  fig.height = 8)
+file.copy("../seagull/seagull_0.0.1.tar.gz", ".", overwrite=TRUE)
+```
+
+# buildr
+
+A very simple minded build server, until [r-hub](https://github.com/r-hub) is working.  Don't use this for anything serious and use r-hub when it comes out because it's going to be way better.
+
+# Using the client
+
+You need the hostname of the build server, and the port if it is running on a non-deafult port
+
+```{r}
+cl <- buildr::buildr_client("localhost", 9999L)
+```
+
+Test that the connection is up (I have intermittent connection problems with the server on Windows).
+
+```{r}
+cl$ping()
+```
+
+(this will hang, possibly forever, if it fails).
+
+**Submit a package**.  The package must be a path to a `tar.gz` file built with `R CMD build` or `devtools::build` (i.e., a *source* package).  The filename will typically have an embedded version number.
+
+```{r}
+id <- cl$submit("seagull_0.0.1.tar.gz")
+id
+```
+
+The identifier is the md5 fingerprint of your source file
+
+You can see source packages that the server knows about:
+
+```{r}
+cl$packages()
+```
+
+To get the actual name of the source files, pass `translate=TRUE`:
+
+```{r}
+cl$packages(translate=TRUE)
+```
+
+and request the status of the package you are building:
+
+```{r}
+cl$status(id)
+```
+
+To block until a package has finished building, use `wait`:
+
+```{r}
+filename <- cl$wait(id)
+filename
+```
+
+The return value here is the filename where the binary has been copied to.  You can also get this with:
+
+```{r}
+cl$download(id)
+```
+
+(by default, both `wait` and `download` use a temporary directory but this is configurable with the `dest` argument).
+
+The build log can be retrieved:
+
+```{r}
+cl$log(id)
+```
+
+# Server
+
+The file `inst/run.py` file controlls the server.  Running `./inst/run.py` gives options:
+
+```{r, results="asis", echo=FALSE}
+writeLines(c("```", system2(c("inst/run.py", "--help"), stdout=TRUE), "```"))
+```

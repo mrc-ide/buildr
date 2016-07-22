@@ -27,27 +27,9 @@ check_all: build
 	@rm -f `ls -1tr ${PACKAGE}*gz | tail -n1`
 	@rm -rf ${PACKAGE}.Rcheck
 
-autodoc:
-	${RSCRIPT} autodoc.R process
-
-staticdocs:
-	@mkdir -p inst/staticdocs
-	${RSCRIPT} -e "library(methods); staticdocs::build_site()"
-	rm -f vignettes/*.html
-	@rmdir inst/staticdocs
-website: staticdocs
-	./update_web.sh
-
 README.md: README.Rmd
 	Rscript -e 'library(methods); devtools::load_all(); knitr::knit("README.Rmd")'
 	sed -i.bak 's/[[:space:]]*$$//' $@
 	rm -f $@.bak
 
-vignettes/seagull.Rmd: vignettes/src/seagull.R
-	${RSCRIPT} -e 'library(sowsear); sowsear("$<", output="$@")'
-vignettes: vignettes/seagull.Rmd
-	${RSCRIPT} -e 'library(methods); devtools::build_vignettes()'
-
-
-# No real targets!
 .PHONY: all test document install vignettes build

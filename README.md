@@ -1,122 +1,155 @@
+
+
 # buildr
 
 A very simple minded build server, until [r-hub](https://github.com/r-hub) is working.  Don't use this for anything serious and use r-hub when it comes out because it's going to be way better.
 
 # Using the client
 
-You need the hostname of the build server.
+You need the hostname of the build server, and the port if it is running on a non-deafult port
+
 
 ```r
-cl <- buildr::buildr_client("hostname")
+cl <- buildr::buildr_client("localhost", 9999L)
 ```
 
 Test that the connection is up (I have intermittent connection problems with the server on Windows).
 
+
 ```r
 cl$ping()
-# [1] "This is buildr 0.0.1"
+```
+
+```
+## [1] "This is buildr"
 ```
 
 (this will hang, possibly forever, if it fails).
 
 **Submit a package**.  The package must be a path to a `tar.gz` file built with `R CMD build` or `devtools::build` (i.e., a *source* package).  The filename will typically have an embedded version number.
 
+
 ```r
-obj <- cl$submit("mypackage_0.0.1.tar.gz")
-obj
-# $hash_source
-# [1] "cc75b2a88c773662c56366c0074b2c3d"
-#
-# $build
-# [1] TRUE
-#
-# $task_id
-# [1] "b3fca7cbddfeda961fe3a93a8535054f"
+id <- cl$submit("seagull_0.0.1.tar.gz")
+id
 ```
 
-The `hash_source` is the fingerprint of your source file, the `build` is a logical indicating if the package will be built and the `task_id` is the task number from the internal queue.
+```
+## [1] "7c14fbe062401e9751f64f670c0294ba"
+```
 
-You can see source packages that the server knows about (this returns a data.frame)
+The identifier is the md5 fingerprint of your source file
+
+You can see source packages that the server knows about:
+
 
 ```r
 cl$packages()
-#                        hash_source        filename_source
-# 1 cc75b2a88c773662c56366c0074b2c3d mypackage_0.0.1.tar.gz
+```
+
+```
+## [1] "7c14fbe062401e9751f64f670c0294ba"
+```
+
+To get the actual name of the source files, pass `translate=TRUE`:
+
+
+```r
+cl$packages(translate=TRUE)
+```
+
+```
+## [1] "seagull_0.0.1.tar.gz"
 ```
 
 and request the status of the package you are building:
 
+
 ```r
-cl$status(obj$hash_source)
-# $success
-# [1] TRUE
-#
-# $filename_source
-# [1] "cc75b2a88c773662c56366c0074b2c3d"
-#
-# $filename_binary
-# [1] "cascade_0.0.0.9000.zip"
-#
-# $hash_source
-# [1] "cc75b2a88c773662c56366c0074b2c3d"
-#
-# $hash_binary
-# [1] "a062f264fe74d86ec5ab2789204e18bf"
-#
-# $task_id
-# [1] "b3fca7cbddfeda961fe3a93a8535054f"
+cl$status(id)
 ```
+
+```
+## [1] "RUNNING"
+```
+
+To block until a package has finished building, use `wait`:
+
+
+```r
+filename <- cl$wait(id)
+```
+
+```
+## .
+```
+
+```r
+filename
+```
+
+```
+## [1] "/tmp/RtmpksI1uo/file61e255194762/seagull_0.0.1_R_x86_64-pc-linux-gnu.tar.gz"
+```
+
+The return value here is the filename where the binary has been copied to.  You can also get this with:
+
+
+```r
+cl$download(id)
+```
+
+```
+## [1] "/tmp/RtmpksI1uo/file61e2702fe50/seagull_0.0.1_R_x86_64-pc-linux-gnu.tar.gz"
+```
+
+(by default, both `wait` and `download` use a temporary directory but this is configurable with the `dest` argument).
 
 The build log can be retrieved:
 
+
 ```r
-cl$log(obj$hash_source)
-# Installing dependencies: deSolve
-# trying URL 'https://cran.rstudio.com/bin/windows/contrib/3.2/deSolve_1.12.zip'
-# Content type 'application/zip' length 2805011 bytes (2.7 MB)
-# ==================================================
-# downloaded 2.7 MB
-# [...]
-# ** testing if installed package can be loaded
-# *** arch - i386
-# *** arch - x64
-# * MD5 sums
-# packaged installation of 'mypackage' as mypackage_0.0.1.zip
-# * DONE (mypackage)
+cl$log(id)
 ```
 
-And of course the binary can be retrieved:
-
-```r
-filename <- cl$binary(obj$hash_source)
-file.exists(filename)
-# [1] TRUE
 ```
-
-Alternatively
-
-```r
-filename <- cl$wait(obj$hash_source)
-```
-
-will poll (by default every second) until a file is created, or fail after a timeout (by default 60s).
-
-Finally, information about the queue (all jobs) can be retrieved:
-
-```r
-> cl$queue_status()
-#                        hash_source           filename_source
-# 1 cc75b2a88c773662c56366c0074b2c3d cascade_0.0.0.9000.tar.gz
-#                            task_id   status           submitted
-# 1 b3fca7cbddfeda961fe3a93a8535054f COMPLETE 2016-01-28 15:45:49
-#               started            finished waiting running     idle
-# 1 2016-01-28 15:45:49 2016-01-28 15:46:12  0.1716 22.2616 366.4666
+## * installing to library ‘/tmp/Rtmp7zPlLP/file61eb7889d552’
+## * installing *source* package ‘seagull’ ...
+## ** libs
+## gcc -std=gnu99 -I/usr/share/R/include -DNDEBUG      -fpic  -Wall -Wextra -Wno-unused-parameter -c fcntl.c -o fcntl.o
+## fcntl.c: In function ‘seagull_fcntl_state’:
+## fcntl.c:124:7: warning: unused variable ‘errsv’ [-Wunused-variable]
+##    int errsv;
+##        ^
+## fcntl.c:121:44: warning: unused variable ‘locked’ [-Wunused-variable]
+##    int fd = *seagull_get_fd(extPtr, 1), ok, locked;
+##                                             ^
+## gcc -std=gnu99 -shared -L/usr/lib/R/lib -Wl,-Bsymbolic-functions -Wl,-z,relro -o seagull.so fcntl.o -L/usr/lib/R/lib -lR
+## installing to /tmp/Rtmp7zPlLP/file61eb7889d552/seagull/libs
+## ** R
+## ** inst
+## ** preparing package for lazy loading
+## ** help
+## *** installing help indices
+## ** building package indices
+## ** testing if installed package can be loaded
+## * creating tarball
+## packaged installation of ‘seagull’ as ‘seagull_0.0.1_R_x86_64-pc-linux-gnu.tar.gz’
+## * DONE (seagull)
 ```
 
 # Server
 
-```r
-buildr::buildr_server("workdirectory", n_workers)
-```
+The file `inst/run.py` file controlls the server.  Running `./inst/run.py` gives options:
 
-A lot of files will be created under "workdirectory"; source files, a little database, etc, etc.  If n_workers is 0, then instructions on creating workers will be printed.  You need to create one somehow or nothing will happen.  This runs until interrupted.
+```
+usage: run.py [-h] [--root ROOT] [--port PORT] [--expose]
+
+Run a buildr server.
+
+optional arguments:
+  -h, --help   show this help message and exit
+  --root ROOT  path for root of server
+  --port PORT  port to run server on
+  --expose     Exose the server to the world?
+```
