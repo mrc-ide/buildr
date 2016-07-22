@@ -57,14 +57,20 @@ class Buildr:
         # should spawn R here to check packages I think, and set up a
         # temporary library, as we don't want to fuck up the main one.
         self.paths = paths(path)
-        self.lib_host = os.environ['R_LIBS_USER']
+        if 'R_LIBS_USER' in os.environ:
+            self.lib_host = os.environ['R_LIBS_USER']
+        else:
+            self.lib_host = None
         self.reset()
 
     def reset(self, async=False):
         for p in self.paths.itervalues():
             dir_create(p)
         # If this fails, it's all bad.
-        os.environ['R_LIBS_USER'] = self.lib_host
+        if self.lib_host:
+            os.environ['R_LIBS_USER'] = self.lib_host
+        elif 'R_LIBS_USER' in os.environ:
+            del os.environ['R_LIBS_USER']
         args = ['Rscript', '-e',
                 'buildr:::bootstrap("%s")' % self.paths['lib']]
         if async:
