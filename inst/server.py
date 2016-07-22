@@ -27,15 +27,15 @@ def packages(package_type):
     packages = app.buildr.package_list(package_type, translate)
     return flask.jsonify(packages)
 
-@app.route("/status/<package_id>")
+@app.route('/status/<package_id>')
 def status(package_id):
-    if package_id == "queue":
+    if package_id == 'queue':
         ret = app.buildr.queue_status()
     else:
         ret = app.buildr.package_status(package_id)
     return flask.jsonify(ret)
 
-@app.route("/info/<package_id>")
+@app.route('/info/<package_id>')
 def info(package_id):
     ret = app.buildr.package_info(package_id)
     if ret:
@@ -43,7 +43,7 @@ def info(package_id):
     else:
         return err_not_found()
 
-@app.route("/source_info/<package_id>")
+@app.route('/source_info/<package_id>')
 def source_info(package_id):
     ret = app.buildr.source_info(package_id)
     if ret:
@@ -51,7 +51,7 @@ def source_info(package_id):
     else:
         return err_not_found()
 
-@app.route("/log/<package_id>")
+@app.route('/log/<package_id>')
 def log(package_id):
     n = flask.request.args.get('n')
     if n is not None:
@@ -65,7 +65,7 @@ def log(package_id):
             dat = dat[-n:]
         return flask.jsonify(''.join(dat))
 
-@app.route("/download/<package_id>/<package_type>")
+@app.route('/download/<package_id>/<package_type>')
 def download(package_id, package_type):
     check_package_type(package_type)
     path = os.path.join(app.buildr.paths[package_type], package_id)
@@ -74,7 +74,7 @@ def download(package_id, package_type):
     return flask.send_file(os.path.abspath(path),
                            'application/octet-stream')
 
-@app.route("/submit/<package_name>", methods=["POST"])
+@app.route('/submit/<package_name>', methods=['POST'])
 def submit(package_name):
     tmpfile = os.path.join(app.buildr.paths['root'], 'incoming',
                            secure_filename(os.path.basename(package_name)))
@@ -84,14 +84,14 @@ def submit(package_name):
     os.remove(tmpfile)
     return flask.jsonify(package_id)
 
-@app.route("/upgrade", methods=["PATCH"])
+@app.route('/upgrade', methods=['PATCH'])
 def upgrade():
     return flask.jsonify(app.buildr.queue_special('upgrade'))
 
 # TODO: ths should have a pin on it or something.  That's pretty
 # annoying to get right but would be useful.  But we're assuming here
 # that we're running in a non-hostile environment.
-@app.route("/reset", methods=["PATCH"])
+@app.route('/reset', methods=['PATCH'])
 def reset():
     return flask.jsonify(app.buildr.queue_special('reset'))
 
@@ -126,7 +126,7 @@ class InvalidUsage(Exception):
 
 def check_package_type(package_type):
     if package_type not in buildr.package_types():
-        raise InvalidUsage("Invalid package type", status_code=400)
+        raise InvalidUsage('Invalid package type', status_code=400)
 
 def sys_getenv(name, default=None):
     if name in os.environ:
@@ -134,11 +134,11 @@ def sys_getenv(name, default=None):
     else:
         return default
 
-def main(root=".", host="127.0.0.1", port=8765):
+def main(root='.', host='127.0.0.1', port=8765):
     app.buildr = buildr.Buildr(root)
     app.run(host, port)
 
-if __name__ == "__main__":
-    main(sys_getenv("BUILDR_ROOT", "."),
-         sys_getenv("BUILDR_HOST", "127.0.0.1"),
-         sys_getenv("BUILDR_PORT", 8765))
+if __name__ == '__main__':
+    main(sys_getenv('BUILDR_ROOT', '.'),
+         sys_getenv('BUILDR_HOST', '127.0.0.1'),
+         sys_getenv('BUILDR_PORT', 8765))

@@ -82,7 +82,7 @@ class Buildr:
     def package_list(self, package_type, translate):
         pkgs = os.listdir(self.paths[package_type])
         if translate:
-            if package_type == "source":
+            if package_type == 'source':
                 pkgs = [read_file(os.path.join(self.paths['filename'], i))
                         for i in pkgs]
             else:
@@ -207,7 +207,7 @@ class Buildr:
         log_str = '[%s] (%-32s) %s' % (
             time.strftime('%Y-%m-%d %H:%M:%S'), id, message)
         with open(os.path.join(self.paths['log'], 'queue'), 'a') as logfile:
-            logfile.write(log_str + "\n")
+            logfile.write(log_str + '\n')
         print log_str
 
 def read_file(filename):
