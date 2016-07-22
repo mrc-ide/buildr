@@ -74,6 +74,17 @@ class Buildr:
         self.queue = []
         self.log('buildr', 'starting')
 
+    def package_list(self, package_type, translate):
+        pkgs = os.listdir(self.paths[package_type])
+        if translate:
+            if package_type == "source":
+                pkgs = [read_file(os.path.join(self.paths['filename'], i))
+                        for i in pkgs]
+            else:
+                pkgs = [self.package_info(i)['filename_binary']
+                        for i in pkgs]
+        return pkgs
+
     def package_status(self, package_id):
         if os.path.exists(os.path.join(self.paths['binary'], package_id)):
             return 'COMPLETE'

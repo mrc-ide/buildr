@@ -29,9 +29,10 @@ buildr_available <- function(host, port=8765) {
       buildr_http_client_response(httr::GET(self$base_url))
     },
 
-    packages=function(binary=FALSE) {
+    packages=function(binary=FALSE, translate=TRUE) {
       type <- if (binary) "binary" else "source"
-      r <- httr::GET(file.path(self$base_url, "packages", type))
+      query <- list(translate = tolower(as.character(translate)))
+      r <- httr::GET(file.path(self$base_url, "packages", type), query=query)
       buildr_http_client_response(r, empty=character(0))
     },
 

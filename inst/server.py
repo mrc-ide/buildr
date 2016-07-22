@@ -16,7 +16,8 @@ def index():
 @app.route("/packages/<package_type>")
 def packages(package_type):
     check_package_type(package_type)
-    packages = os.listdir(app.buildr.paths[package_type])
+    translate = flask.request.args.get('translate').lower() == 'true'
+    packages = app.buildr.package_list(package_type, translate)
     return flask.jsonify(packages)
 
 @app.route("/status/<package_id>")
