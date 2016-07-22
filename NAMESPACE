@@ -2,9 +2,6 @@
 
 S3method(print,build_log)
 export(build_binaries)
-export(build_package)
-export(buildr)
 export(buildr_available)
 export(buildr_client)
-export(buildr_server)
 importFrom(R6,R6Class)
