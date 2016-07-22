@@ -29,7 +29,7 @@ bootstrap <- function(lib) {
   oo <- options(repos=r)
   on.exit(options(oo))
   desc <- read.dcf(system.file("DESCRIPTION", package=.packageName))
-  deps <- get_deps(desc, TRUE)
+  deps <- get_deps(desc, FALSE)
   existing <- .packages(TRUE, lib)
   needed <- setdiff(deps, existing)
   if (length(needed)) {
