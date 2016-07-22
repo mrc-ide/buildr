@@ -45,11 +45,18 @@ def source_info(package_id):
 
 @app.route("/log/<package_id>")
 def log(package_id):
-    filename = obj.paths['log'] + '/' + package_id
+    n = flask.request.args.get('n')
+    if n is not None:
+        n = int(n)
+    filename = app.buildr.paths['log'] + '/' + package_id
     if not os.path.exists(filename):
         return err_not_found()
     with open(filename, 'r') as f:
-        return flask.jsonify(f.read())
+        dat = f.readlines()
+        # import ipdb; ipdb.set_trace()
+        if n is not None and len(dat) > n:
+            dat = dat[-n:]
+        return flask.jsonify(''.join(dat))
 
 @app.route("/download/<package_id>/<package_type>")
 def download(package_id, package_type):

@@ -48,8 +48,9 @@ buildr_available <- function(host, port=8765) {
       buildr_http_client_response(r)
     },
 
-    log=function(hash) {
-      r <- httr::GET(file.path(self$base_url, "log", hash))
+    log=function(hash, n=NULL) {
+      query <- if (is.null(n)) NULL else list(n = n)
+      r <- httr::GET(file.path(self$base_url, "log", hash), query=query)
       log <- buildr_http_client_response(r)
       class(log) <- "build_log"
       log
