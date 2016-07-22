@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # To debug;
 #   import ipdb; ipdb.set_trace()
 import os
@@ -7,7 +8,6 @@ from werkzeug import secure_filename
 import buildr
 
 app = flask.Flask(__name__)
-obj = buildr.Buildr()
 
 @app.route('/')
 def index():
@@ -16,20 +16,20 @@ def index():
 @app.route("/packages/<package_type>")
 def packages(package_type):
     check_package_type(package_type)
-    packages = os.listdir(obj.paths[package_type])
+    packages = os.listdir(app.buildr.paths[package_type])
     return flask.jsonify(packages)
 
 @app.route("/status/<package_id>")
 def status(package_id):
     if package_id == "queue":
-        ret = obj.queue_status()
+        ret = app.buildr.queue_status()
     else:
-        ret = obj.package_status(package_id)
+        ret = app.buildr.package_status(package_id)
     return flask.jsonify(ret)
 
 @app.route("/info/<package_id>")
 def info(package_id):
-    ret = obj.package_info(package_id)
+    ret = app.buildr.package_info(package_id)
     if ret:
         return flask.jsonify(ret)
     else:
@@ -37,7 +37,7 @@ def info(package_id):
 
 @app.route("/source_info/<package_id>")
 def source_info(package_id):
-    ret = obj.source_info(package_id)
+    ret = app.buildr.source_info(package_id)
     if ret:
         return flask.jsonify(ret)
     else:
@@ -53,7 +53,6 @@ def log(package_id):
         return err_not_found()
     with open(filename, 'r') as f:
         dat = f.readlines()
-        # import ipdb; ipdb.set_trace()
         if n is not None and len(dat) > n:
             dat = dat[-n:]
         return flask.jsonify(''.join(dat))
@@ -61,7 +60,7 @@ def log(package_id):
 @app.route("/download/<package_id>/<package_type>")
 def download(package_id, package_type):
     check_package_type(package_type)
-    path = os.path.join(obj.paths[package_type], package_id)
+    path = os.path.join(app.buildr.paths[package_type], package_id)
     if not os.path.exists(path):
         return err_not_found()
     return flask.send_file(os.path.abspath(path),
@@ -69,28 +68,28 @@ def download(package_id, package_type):
 
 @app.route("/submit/<package_name>", methods=["POST"])
 def submit(package_name):
-    tmpfile = os.path.join(obj.paths['root'], 'incoming',
+    tmpfile = os.path.join(app.buildr.paths['root'], 'incoming',
                            secure_filename(os.path.basename(package_name)))
     with open(tmpfile, 'wb') as file:
         file.write(flask.request.data)
-    package_id = obj.queue_build(tmpfile)
+    package_id = app.buildr.queue_build(tmpfile)
     os.remove(tmpfile)
     return flask.jsonify(package_id)
 
 @app.route("/upgrade", methods=["PATCH"])
 def upgrade():
-    return flask.jsonify(obj.queue_upgrade())
+    return flask.jsonify(app.buildr.queue_special('upgrade'))
 
 # TODO: ths should have a pin on it or something.  That's pretty
 # annoying to get right but would be useful.  But we're assuming here
 # that we're running in a non-hostile environment.
 @app.route("/reset", methods=["PATCH"])
 def reset():
-    return flask.jsonify(obj.queue_special('reset'))
+    return flask.jsonify(app.buildr.queue_special('reset'))
 
 @app.after_request
 def process_queue(response):
-    obj.run()
+    app.buildr.run()
     return response
 
 def err_not_found(error=None):
@@ -120,3 +119,13 @@ class InvalidUsage(Exception):
 def check_package_type(package_type):
     if package_type not in buildr.package_types():
         raise InvalidUsage("Invalid package type", status_code=400)
+
+def sys_getenv(name, default=None):
+    if name in os.environ:
+        return os.environ[name]
+    else:
+        return default
+
+if __name__ == "__main__":
+    app.buildr = buildr.Buildr(sys_getenv("BUILDR_ROOT", "."))
+    app.run('0.0.0.0', sys_getenv("BUILDR_PORT", 8765))
