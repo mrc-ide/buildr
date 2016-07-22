@@ -127,6 +127,11 @@ def sys_getenv(name, default=None):
     else:
         return default
 
+def main(root=".", host="127.0.0.1", port=8765):
+    app.buildr = buildr.Buildr(root)
+    app.run(host, port)
+
 if __name__ == "__main__":
-    app.buildr = buildr.Buildr(sys_getenv("BUILDR_ROOT", "."))
-    app.run('0.0.0.0', sys_getenv("BUILDR_PORT", 8765))
+    main(sys_getenv("BUILDR_ROOT", "."),
+         sys_getenv("BUILDR_HOST", "127.0.0.1"),
+         sys_getenv("BUILDR_PORT", 8765))
