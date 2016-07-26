@@ -84,11 +84,19 @@ def find_Rscript(path):
     return path
 
 
+def rversion(rscript):
+    version = subprocess.check_output([rscript, '--version'],
+                                      stderr=subprocess.STDOUT)
+    return version.split('\n', 1)[0]
+
+
 class Buildr:
     def __init__(self, path='.', R=None):
         # should spawn R here to check packages I think, and set up a
         # temporary library, as we don't want to fuck up the main one.
         self.paths = paths(path)
+        self.Rscript = find_Rscript(R)
+        self.Rversion = rversion(self.Rscript)
         if 'R_LIBS_USER' in os.environ:
             self.lib_host = os.environ['R_LIBS_USER']
         else:
@@ -103,7 +111,7 @@ class Buildr:
             os.environ['R_LIBS_USER'] = self.lib_host
         elif 'R_LIBS_USER' in os.environ:
             del os.environ['R_LIBS_USER']
-        args = ['Rscript', '-e',
+        args = [self.Rscript, '-e',
                 'buildr:::bootstrap("%s")' % self.paths['lib']]
         if async:
             self.active = process('active', args, None)
@@ -114,6 +122,8 @@ class Buildr:
             self.active = None
         os.environ['R_LIBS_USER'] = self.paths['lib']
         self.queue = []
+        self.log('Rscript', self.Rscript)
+        self.log('R',       self.Rversion)
         self.log('buildr', 'starting')
         return self.active
 
@@ -187,7 +197,7 @@ class Buildr:
     def run_upgrade(self):
         # NOTE: does not use _any_ non-base packages/functions because
         # otherwise we'd get file locking issues on windows.
-        args = ['Rscript', '-e',
+        args = [self.Rscript, '-e',
                 'update.packages("%s", ask=FALSE)' % self.paths['lib']]
         return process('upgrade', args, None)
 
@@ -202,7 +212,7 @@ class Buildr:
         return self.reset(True)
 
     def run_build(self, package_id):
-        args = ['Rscript', '-e',
+        args = [self.Rscript, '-e',
                 'buildr:::build_binary_main("%s", "%s", "%s", "%s")' % (
                     package_id, self.paths['source'], self.paths['binary'],
                     self.paths['info'])]

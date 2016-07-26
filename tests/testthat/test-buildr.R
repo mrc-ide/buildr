@@ -44,8 +44,9 @@ test_that("buildr", {
 
   log <- cl$log("queue")
   expect_is(log, "data.frame")
-  expect_equal(log$message[1:3], c("starting", "queuing", "starting"))
-  expect_true("skipping" %in% log$message)
+  expect_equal(log$id[1:2], c("Rscript", "R"))
+  expect_equal(log$message[3:5], c("starting", "queuing", "starting"))
+  expect_true("skipping" %in% log$message[-(1:5)])
 })
 
 test_that("upgrade doesn't crash", {
