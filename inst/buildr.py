@@ -56,6 +56,10 @@ def is_exe(fpath):
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
 
+def clean_path(path):
+    return path if os.name != 'nt' else path.replace("\\", "/")
+
+
 def sys_which(program):
     fpath, fname = os.path.split(program)
     if fpath:
@@ -112,7 +116,7 @@ class Buildr:
         elif 'R_LIBS_USER' in os.environ:
             del os.environ['R_LIBS_USER']
         args = [self.Rscript, '-e',
-                'buildr:::bootstrap("%s")' % self.paths['lib']]
+                "buildr:::bootstrap('%s')" % clean_path(self.paths['lib'])]
         if async:
             self.active = process('active', args, None)
         else:
@@ -198,7 +202,8 @@ class Buildr:
         # NOTE: does not use _any_ non-base packages/functions because
         # otherwise we'd get file locking issues on windows.
         args = [self.Rscript, '-e',
-                'update.packages("%s", ask=FALSE)' % self.paths['lib']]
+                'update.packages("%s", ask=FALSE)' %
+                clean_path(self.paths['lib'])]
         return process('upgrade', args, None)
 
     def run_reset(self):
@@ -214,8 +219,10 @@ class Buildr:
     def run_build(self, package_id):
         args = [self.Rscript, '-e',
                 'buildr:::build_binary_main("%s", "%s", "%s", "%s")' % (
-                    package_id, self.paths['source'], self.paths['binary'],
-                    self.paths['info'])]
+                    package_id,
+                    clean_path(self.paths['source']),
+                    clean_path(self.paths['binary']),
+                    clean_path(self.paths['info']))]
         logfile = os.path.join(self.paths['log'], package_id)
         return process(package_id, args, logfile)
 
