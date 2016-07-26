@@ -91,10 +91,10 @@ def rversion(rscript):
 
 
 class Buildr:
-    def __init__(self, path='.', R=None):
+    def __init__(self, root='.', R=None):
         # should spawn R here to check packages I think, and set up a
         # temporary library, as we don't want to fuck up the main one.
-        self.paths = paths(path)
+        self.paths = paths(root)
         self.Rscript = find_Rscript(R)
         self.Rversion = rversion(self.Rscript)
         if 'R_LIBS_USER' in os.environ:
