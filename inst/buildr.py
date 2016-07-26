@@ -52,8 +52,40 @@ def package_types():
     return ('source', 'binary')
 
 
+def is_exe(fpath):
+    return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+
+def sys_which(program):
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ['PATH'].split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+    return None
+
+
+def find_Rscript(path):
+    rscript = 'Rscript.exe' if os.name == 'nt' else 'Rscript'
+    if path is None:
+        path = sys_which(rscript)
+        if path is None:
+            raise Exception('Did not find Rscript on path')
+    else:
+        if os.path.isdir(path):
+            path = os.path.join(path, rscript)
+        if not is_exe(path):
+            raise Exception('Did not find Rscript at given path')
+    return path
+
+
 class Buildr:
-    def __init__(self, path='.'):
+    def __init__(self, path='.', R=None):
         # should spawn R here to check packages I think, and set up a
         # temporary library, as we don't want to fuck up the main one.
         self.paths = paths(path)
