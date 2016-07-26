@@ -202,7 +202,7 @@ class Buildr:
         # NOTE: does not use _any_ non-base packages/functions because
         # otherwise we'd get file locking issues on windows.
         args = [self.Rscript, '-e',
-                'update.packages("%s", ask=FALSE)' %
+                "update.packages('%s', ask=FALSE)" %
                 clean_path(self.paths['lib'])]
         return process('upgrade', args, None)
 
@@ -218,7 +218,7 @@ class Buildr:
 
     def run_build(self, package_id):
         args = [self.Rscript, '-e',
-                'buildr:::build_binary_main("%s", "%s", "%s", "%s")' % (
+                "buildr:::build_binary_main('%s', '%s', '%s', '%s')" % (
                     package_id,
                     clean_path(self.paths['source']),
                     clean_path(self.paths['binary']),
