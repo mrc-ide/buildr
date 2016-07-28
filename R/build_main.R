@@ -2,12 +2,20 @@
 ## make very few assumptions about how the python version is
 ## structured in terms of directories, but of course there is still a
 ## bunch of information that has to match up nicely.
-build_binary_main <- function(package_id, path_source, path_binary, path_info) {
+build_binary_main <- function(package_id, path_source, path_binary, path_info,
+                              path_library) {
+  desc <- read.dcf(system.file("DESCRIPTION", package=.packageName))
+  for (d in get_deps(desc, FALSE)) {
+    loadNamespace(d)
+  }
+  Sys.unsetenv("R_LIBS_USER")
+  .libPaths(normalizePath(path_library, "/", TRUE))
+
   path_source <- normalizePath(path_source, "/", TRUE)
   path_binary <- normalizePath(path_binary, "/", TRUE)
   path_info   <- normalizePath(path_info,   "/", TRUE)
 
-  res <- do_build_binary(file.path(path_source, package_id), path_binary)
+  res <- build_binary(file.path(path_source, package_id), path_binary)
 
   info <- jsonlite::toJSON(list(hash_source=package_id,
                                 hash_binary=tools::md5sum(res),
@@ -34,7 +42,7 @@ bootstrap <- function(lib) {
   needed <- setdiff(deps, existing)
   if (length(needed)) {
     message("Installing dependencies: ", paste(needed, collapse=", "))
-    install.packages(deps, lib=lib)
+    install.packages(needed, lib=lib)
   }
   if (!(.packageName %in% existing)) {
     path <- system.file(package=.packageName)

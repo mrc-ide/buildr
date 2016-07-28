@@ -41,7 +41,10 @@ def info(package_id):
     if ret:
         return flask.jsonify(ret)
     else:
-        return err_not_found()
+        status = app.buildr.package_status(package_id)
+        ret = flask.jsonify(status)
+        ret.status_code = 404 if status == "UNKNOWN" else 202
+        return ret
 
 @app.route('/source_info/<package_id>')
 def source_info(package_id):

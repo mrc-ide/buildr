@@ -51,7 +51,11 @@ buildr_available <- function(host, port=8765) {
 
     info=function(package_id) {
       r <- httr::GET(file.path(self$base_url, "info", package_id))
-      buildr_http_client_response(r)
+      if (httr::status_code(r) == 202) {
+        NULL
+      } else {
+        buildr_http_client_response(r)
+      }
     },
 
     log=function(package_id, n=NULL) {
@@ -99,8 +103,7 @@ buildr_available <- function(host, port=8765) {
       dir.create(dirname(dest), FALSE, TRUE)
       times_up <- time_checker(timeout)
       repeat {
-        info <- tryCatch(self$info(package_id),
-                         error=function(e) NULL)
+        info <- self$info(package_id)
         if (is.null(info)) {
           if (times_up()) {
             log <- try(cat(self$log(package_id)), silent=TRUE)
@@ -119,6 +122,27 @@ buildr_available <- function(host, port=8765) {
                        package_id))
         } else {
           return(self$download(package_id, dest))
+        }
+      }
+    },
+
+    build=function(filenames, dest=tempfile(), poll=1, timeout=60,
+                   verbose=TRUE) {
+      ok <- file.exists(filename)
+      if (!all(ok)) {
+        stop("files not found: ", paste(filenames[!ok], collapse=", "))
+      }
+      res <- lapply(filenames, self$submit)
+      ret <- character(length(filenames))
+      for (i in seq_along(filenames)) {
+        if (verbose) {
+          message(
+            sprintf("Waiting for %s to build: ", basename(filenames[[i]])),
+            appendLF=FALSE)
+        }
+        ret[[i]] <- self$wait(res[[i]], dest, poll, timeout, verbose)
+        if (verbose) {
+          message(basename(ret[[i]]))
         }
       }
     }))

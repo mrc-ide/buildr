@@ -11,7 +11,7 @@ install_deps <- function(filename, suggests=FALSE, ..., lib=.libPaths()[[1]]) {
   on.exit(options(oo))
   deps <- get_deps(extract_DESCRIPTION(filename), suggests)
   needed <- setdiff(deps, .packages(TRUE, union(lib, .libPaths())))
-  if (length(needed)) {
+  if (length(needed) > 0L) {
     message("Installing dependencies: ", paste(needed, collapse=", "))
     install.packages(deps, ..., lib=lib)
   }

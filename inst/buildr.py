@@ -96,35 +96,15 @@ def rversion(rscript):
 
 class Buildr:
     def __init__(self, root='.', R=None):
-        # should spawn R here to check packages I think, and set up a
-        # temporary library, as we don't want to fuck up the main one.
         self.paths = paths(root)
         self.Rscript = find_Rscript(R)
         self.Rversion = rversion(self.Rscript)
-        if 'R_LIBS_USER' in os.environ:
-            self.lib_host = os.environ['R_LIBS_USER']
-        else:
-            self.lib_host = None
         self.reset()
 
     def reset(self, async=False):
         for p in self.paths.itervalues():
             dir_create(p)
-        # If this fails, it's all bad.
-        if self.lib_host:
-            os.environ['R_LIBS_USER'] = self.lib_host
-        elif 'R_LIBS_USER' in os.environ:
-            del os.environ['R_LIBS_USER']
-        args = [self.Rscript, '-e',
-                "buildr:::bootstrap('%s')" % clean_path(self.paths['lib'])]
-        if async:
-            self.active = process('active', args, None)
-        else:
-            code = subprocess.call(args)
-            if code != 0:
-                raise Exception('Error running bootstrap script')
-            self.active = None
-        os.environ['R_LIBS_USER'] = self.paths['lib']
+        self.active = None
         self.queue = []
         self.log('Rscript', self.Rscript)
         self.log('R',       self.Rversion)
@@ -184,6 +164,13 @@ class Buildr:
             shutil.copyfile(filename, filename_source)
             self.log(package_id, 'queuing')
             self.queue.append(package_id)
+            # clean up any previous attempts, as these will confuse clients
+            path_info = os.path.join(self.paths['info'], package_id)
+            path_log = os.path.join(self.paths['log'], package_id)
+            if os.path.exists(path_info):
+                os.remove(path_info)
+            if os.path.exists(path_log):
+                os.remove(path_log)
         return package_id
 
     def queue_special(self, special):
@@ -218,11 +205,12 @@ class Buildr:
 
     def run_build(self, package_id):
         args = [self.Rscript, '-e',
-                "buildr:::build_binary_main('%s', '%s', '%s', '%s')" % (
+                "buildr:::build_binary_main('%s', '%s', '%s', '%s', '%s')" % (
                     package_id,
                     clean_path(self.paths['source']),
                     clean_path(self.paths['binary']),
-                    clean_path(self.paths['info']))]
+                    clean_path(self.paths['info']),
+                    clean_path(self.paths['lib']))]
         logfile = os.path.join(self.paths['log'], package_id)
         return process(package_id, args, logfile)
 

@@ -4,18 +4,21 @@
 \alias{build_binaries}
 \title{Build a set of binaries, waiting until complete}
 \usage{
-build_binaries(filenames, config, dest = tempfile())
+build_binaries(filenames, host, port = 8765, ...)
 }
 \arguments{
 \item{filenames}{Vector of filenames of the source packages}
 
-\item{config}{Configuation options; a list with options "host"
-(required), port, poll and timeout (all optional and passed to
-\code{\link{buildr_client}} and \code{buildr_client$wait}).
-Alternatively, if \code{config=FALSE}, this will build binaries
-using your system directly rather than using a build server.}
+\item{host}{A hostname for the build server, or \code{FALSE} to
+build locally.}
 
-\item{dest}{A directory to place generated files.}
+\item{port}{Port number for the build server}
+
+\item{...}{Arguments passed through to the \code{build} method of
+\code{\link{buildr_client}}; includes \code{dest} (place to put
+binaries), \code{poll} (frequency to poll for job completion),
+\code{timeout} (time until giving up) and \code{verbose}
+(controls printed output).}
 }
 \value{
 A character vector of filenames

@@ -2,54 +2,29 @@
 ##' @title Build a set of binaries, waiting until complete
 ##' @param filenames Vector of filenames of the source packages
 ##'
-##' @param config Configuation options; a list with options "host"
-##'   (required), port, poll and timeout (all optional and passed to
-##'   \code{\link{buildr_client}} and \code{buildr_client$wait}).
-##'   Alternatively, if \code{config=FALSE}, this will build binaries
-##'   using your system directly rather than using a build server.
+##' @param host A hostname for the build server, or \code{FALSE} to
+##'   build locally.
 ##'
-##' @param dest A directory to place generated files.
+##' @param port Port number for the build server
+##'
+##' @param ... Arguments passed through to the \code{build} method of
+##'   \code{\link{buildr_client}}; includes \code{dest} (place to put
+##'   binaries), \code{poll} (frequency to poll for job completion),
+##'   \code{timeout} (time until giving up) and \code{verbose}
+##'   (controls printed output).
+##'
 ##' @export
 ##' @return A character vector of filenames
-build_binaries <- function(filenames, config, dest=tempfile()) {
-  n <- length(filenames)
-  if (n == 0L) {
-    return()
+build_binaries <- function(filenames, host, port=8765, ...) {
+  if (identical(host, FALSE)) {
+    ## This might not do the best thing with stdout.
+    ##
+    ## TODO: we should advertise the desired binary type (here and
+    ## in the server) so that the correct type is always created.
+    return(vcapply(filenames, do_build_binary, dest))
   }
-  dir.create(dest, FALSE, TRUE)
-  if (is.character(config)) {
-    if (identical(config, FALSE)) {
-      ## This might not do the best thing with stdout.
-      ##
-      ## TODO: we should advertise the desired binary type (here and
-      ## in the server) so that the correct type is always created.
-      return(vcapply(filenames, do_build_binary, dest))
-    } else {
-      config <- list(host=config)
-    }
-  }
-  if (!is.list(config)) {
-    stop("Invalid configuration")
-  }
-  unk <- setdiff(names(config), c("host", "port", "poll", "timeout"))
-  if (length(unk) > 0L) {
-    stop("Unknown build configuration: %s", paste(unk, collapse=", "))
-  }
-  host <- config$host %or% stop("host must be given")
-  port <- config$port %or% 8765
-
   cl <- buildr_client(host, port)
   message(cl$ping())
-  timeout <- config$timeout %or% formals(cl$wait)$timeout
-  poll <- config$poll       %or% formals(cl$wait)$poll
-  res <- lapply(filenames, cl$submit)
-  ret <- character(n)
-  for (i in seq_len(n)) {
-    message(sprintf("Waiting for %s to build: ", basename(filenames[[i]])),
-            appendLF=FALSE)
-    ret[[i]] <- cl$wait(res[[i]]$hash_source, dest=dest,
-                        poll=poll, timeout=timeout, verbose=TRUE)
-    message(basename(ret[[i]]))
-  }
+  cl$build(filenames, ...)
   ret
 }
