@@ -9,12 +9,12 @@ build_binary_main <- function(package_id, path_source, path_binary, path_info,
     loadNamespace(d)
   }
   Sys.unsetenv("R_LIBS_USER")
-  .libPaths(normalizePath(path_library, "/", TRUE))
+  path_library <- normalizePath(path_library, "/", TRUE)
+  path_source <- normalizePath(path_source,   "/", TRUE)
+  path_binary <- normalizePath(path_binary,   "/", TRUE)
+  path_info   <- normalizePath(path_info,     "/", TRUE)
 
-  path_source <- normalizePath(path_source, "/", TRUE)
-  path_binary <- normalizePath(path_binary, "/", TRUE)
-  path_info   <- normalizePath(path_info,   "/", TRUE)
-
+  .libPaths(path_library)
   res <- build_binary(file.path(path_source, package_id), path_binary,
                       path_library)
 
