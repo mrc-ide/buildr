@@ -65,7 +65,7 @@ extract_DESCRIPTION <- function(filename) {
 
 ## Based on drat builder:
 get_deps <- function(desc, suggests=FALSE) {
-  cols <- c("Depends", "Imports", if (suggests) "Suggests")
+  cols <- c("Depends", "Imports", "LinkingTo", if (suggests) "Suggests")
   jj <- intersect(cols, colnames(desc))
   val <- unlist(strsplit(desc[, jj], ","), use.names=FALSE)
   val <- gsub("\\s.*", "", trimws(val))
