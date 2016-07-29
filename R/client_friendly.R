@@ -25,7 +25,5 @@ build_binaries <- function(filenames, host, port=8765, ...) {
     return(vcapply(filenames, do_build_binary, dest))
   }
   cl <- buildr_client(host, port)
-  message(cl$ping())
   cl$build(filenames, ...)
-  ret
 }

@@ -159,6 +159,7 @@ buildr_available <- function(host, port=8765) {
           message(basename(ret[[i]]))
         }
       }
+      ret
     }))
 
 ##' @export
