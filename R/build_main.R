@@ -15,7 +15,8 @@ build_binary_main <- function(package_id, path_source, path_binary, path_info,
   path_binary <- normalizePath(path_binary, "/", TRUE)
   path_info   <- normalizePath(path_info,   "/", TRUE)
 
-  res <- build_binary(file.path(path_source, package_id), path_binary)
+  res <- build_binary(file.path(path_source, package_id), path_binary,
+                      path_library)
 
   info <- jsonlite::toJSON(list(hash_source=package_id,
                                 hash_binary=tools::md5sum(res),

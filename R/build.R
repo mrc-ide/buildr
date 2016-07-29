@@ -1,7 +1,7 @@
 ## This is the main entry point that the script will use.
-build_binary <- function(filename, dest) {
-  install_deps(filename)
-  do_build_binary(filename, dest)
+build_binary <- function(filename, dest, lib=.libPaths()[[1]]) {
+  install_deps(filename, lib=lib)
+  do_build_binary(filename, dest, lib)
 }
 
 install_deps <- function(filename, suggests=FALSE, ..., lib=.libPaths()[[1]]) {
@@ -18,30 +18,25 @@ install_deps <- function(filename, suggests=FALSE, ..., lib=.libPaths()[[1]]) {
   }
 }
 
-do_build_binary <- function(filename, dest) {
+do_build_binary <- function(filename, dest, lib=.libPaths()[[1]]) {
   dir.create(dest, FALSE, TRUE)
   if (!file.info(dest)[["isdir"]]) {
     stop("dest must be a directory")
   }
 
-  lib <- tempfile()
-  dir.create(lib)
+  filename <- normalizePath(filename)
   workdir <- tempfile()
   dir.create(workdir)
   owd <- setwd(workdir)
 
+  message("Building into library: ", lib)
   on.exit({
     setwd(owd)
-    unlink(lib, recursive=TRUE)
     unlink(workdir, recursive=TRUE)
   })
 
-  args <- c("CMD", "INSTALL", "--build", normalizePath(filename))
-  env <- c(R_LIBS_USER = lib,
-           R_LIBS = paste(.libPaths(), collapse=":"),
-           CYGWIN = "nodosfilewarning")
-  env <- sprintf("%s=%s", names(env), unname(env))
-  ok <- system2(file.path(R.home(), "bin", "R"), args, env=env)
+  args <- c("CMD", "INSTALL", "--build", paste0("--library=", lib), filename)
+  ok <- system2(file.path(R.home(), "bin", "R"), args)
   if (ok != 0L) {
     stop(sprintf("Command failed (code: %d)", ok))
   }
