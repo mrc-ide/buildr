@@ -4,22 +4,34 @@ knitr::opts_chunk$set(
   error = FALSE,
   fig.width = 8,
   fig.height = 8)
-file.copy("../seagull/seagull_0.0.1.tar.gz", ".", overwrite=TRUE)
 ```
 
 # buildr
 
 A very simple minded build server, until [r-hub](https://github.com/r-hub) is working.  Don't use this for anything serious and use r-hub when it comes out because it's going to be way better.
 
-# Using the client
+## Using the client
 
-You need the hostname of the build server, and the port if it is running on a non-deafult port
+You need the hostname of the build server, and the port if it is running on a non-default port.  The simplest thing is to run:
+
+```{r}
+res <- buildr::build_binaries("seagull_1.0.0.tar.gz", "localhost", port=9999L)
+res
+```
+
+which will submit the package to server and poll until it builds or fails.  By default the created binary file is copied into a temporary directory, but you can control this with the `dest` argument.  If the build fails, the log will be printed along with an id (see below).
+
+The argument to `build` can be a vector of filenames, in which case the packages will be built in order (so you can build a set of dependent packages).
+
+### More details
+
+Create a connection to the buildr server
 
 ```{r}
 cl <- buildr::buildr_client("localhost", 9999L)
 ```
 
-Test that the connection is up (I have intermittent connection problems with the server on Windows).
+You can test the connection is OK:
 
 ```{r}
 cl$ping()
@@ -27,14 +39,22 @@ cl$ping()
 
 (this will hang, possibly forever, if it fails).
 
+```{r, results="hide", echo=FALSE}
+buildr:::buildr_http_client_response(httr::PATCH(file.path(cl$base_url, "reset")))
+```
+
 **Submit a package**.  The package must be a path to a `tar.gz` file built with `R CMD build` or `devtools::build` (i.e., a *source* package).  The filename will typically have an embedded version number.
 
 ```{r}
-id <- cl$submit("seagull_0.0.1.tar.gz")
+id <- cl$submit("seagull_1.0.0.tar.gz")
 id
 ```
 
-The identifier is the md5 fingerprint of your source file
+The identifier is the md5 fingerprint of your source file, which you can also find with `tools::md5sum`:
+
+```{r}
+tools::md5sum("seagull_1.0.0.tar.gz")
+```
 
 You can see source packages that the server knows about:
 
@@ -73,6 +93,25 @@ The build log can be retrieved:
 
 ```{r}
 cl$log(id)
+```
+
+The `packages()` method has an argument `binary` that lists binary packages:
+
+```{r}
+cl$packages(binary=TRUE)
+cl$packages(binary=TRUE, translate=TRUE)
+```
+
+There is also an method `installed` that lists packages installed on the server
+
+```{r}
+cl$installed()
+```
+
+If package versions are behind, you can get the server to upgrade everything with
+
+```{r}
+cl$upgrade()
 ```
 
 # Server

@@ -28,8 +28,9 @@ check_all: build
 	@rm -rf ${PACKAGE}.Rcheck
 
 README.md: README.Rmd
+	R CMD build ../seagull
 	Rscript -e 'library(methods); devtools::load_all(); knitr::knit("README.Rmd")'
 	sed -i.bak 's/[[:space:]]*$$//' $@
-	rm -f $@.bak
+	rm -f $@.bak seagull_*.tar.gz
 
 .PHONY: all test document install vignettes build
