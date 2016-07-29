@@ -99,7 +99,7 @@ buildr_available <- function(host, port=8765) {
     },
 
     wait=function(package_id, dest=tempfile(), poll=1, timeout=60,
-                  verbose=TRUE) {
+                  verbose=TRUE, log_on_failure=FALSE) {
       dir.create(dirname(dest), FALSE, TRUE)
       times_up <- time_checker(timeout)
       repeat {
@@ -118,8 +118,15 @@ buildr_available <- function(host, port=8765) {
           }
           Sys.sleep(poll)
         } else if (is.null(info$filename_binary)) {
-          stop(sprintf("Build failed; see '$log(\"%s\")' for details",
-                       package_id))
+          if (log_on_failure) {
+            log <- self$log(package_id)
+            message(paste(log, collapse="\n"))
+            stop(sprintf("Build failed; see above for details (id: %s)",
+                         package_id))
+          } else {
+            stop(sprintf("Build failed; see '$log(\"%s\")' for details",
+                         package_id))
+          }
         } else {
           return(self$download(package_id, dest))
         }
@@ -127,8 +134,8 @@ buildr_available <- function(host, port=8765) {
     },
 
     build=function(filenames, dest=tempfile(), poll=1, timeout=60,
-                   verbose=TRUE) {
-      ok <- file.exists(filename)
+                   verbose=TRUE, log_on_failure=TRUE) {
+      ok <- file.exists(filenames)
       if (!all(ok)) {
         stop("files not found: ", paste(filenames[!ok], collapse=", "))
       }
@@ -140,7 +147,8 @@ buildr_available <- function(host, port=8765) {
             sprintf("Waiting for %s to build: ", basename(filenames[[i]])),
             appendLF=FALSE)
         }
-        ret[[i]] <- self$wait(res[[i]], dest, poll, timeout, verbose)
+        ret[[i]] <- self$wait(res[[i]], dest, poll, timeout, verbose,
+                              log_on_failure)
         if (verbose) {
           message(basename(ret[[i]]))
         }

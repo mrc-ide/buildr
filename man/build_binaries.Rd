@@ -17,8 +17,9 @@ build locally.}
 \item{...}{Arguments passed through to the \code{build} method of
 \code{\link{buildr_client}}; includes \code{dest} (place to put
 binaries), \code{poll} (frequency to poll for job completion),
-\code{timeout} (time until giving up) and \code{verbose}
-(controls printed output).}
+\code{timeout} (time until giving up), \code{verbose} (controls
+printed output) and \code{log_on_failure} (print logs if a build
+fails).}
 }
 \value{
 A character vector of filenames
