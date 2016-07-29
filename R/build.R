@@ -35,6 +35,7 @@ do_build_binary <- function(filename, dest, lib=.libPaths()[[1]]) {
     unlink(workdir, recursive=TRUE)
   })
 
+  message("Using R: ", normalizePath(R.home()))
   args <- c("CMD", "INSTALL", "--build", paste0("--library=", lib), filename)
   ok <- system2(file.path(R.home(), "bin", "R"), args)
   if (ok != 0L) {
