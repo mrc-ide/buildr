@@ -13,6 +13,7 @@ install_deps <- function(filename, suggests=FALSE, ..., lib=.libPaths()[[1]]) {
   needed <- setdiff(deps, .packages(TRUE, union(lib, .libPaths())))
   if (length(needed) > 0L) {
     message("Installing dependencies: ", paste(needed, collapse=", "))
+    message("Installing into library: ", lib)
     install.packages(deps, ..., lib=lib)
   }
 }
@@ -36,8 +37,8 @@ do_build_binary <- function(filename, dest) {
   })
 
   args <- c("CMD", "INSTALL", "--build", normalizePath(filename))
-  env <- c(R_LIBS = paste(c(lib, .libPaths()), collapse=.Platform$path.sep),
-            CYGWIN = "nodosfilewarning")
+  env <- c(R_LIBS = paste(c(lib, .libPaths()), collapse=":"),
+           CYGWIN = "nodosfilewarning")
   env <- sprintf("%s=%s", names(env), unname(env))
   ok <- system2(file.path(R.home(), "bin", "R"), args, env=env)
   if (ok != 0L) {
