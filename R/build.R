@@ -37,7 +37,8 @@ do_build_binary <- function(filename, dest) {
   })
 
   args <- c("CMD", "INSTALL", "--build", normalizePath(filename))
-  env <- c(R_LIBS = paste(c(lib, .libPaths()), collapse=":"),
+  env <- c(R_LIBS_USER = lib,
+           R_LIBS = paste(.libPaths(), collapse=":"),
            CYGWIN = "nodosfilewarning")
   env <- sprintf("%s=%s", names(env), unname(env))
   ok <- system2(file.path(R.home(), "bin", "R"), args, env=env)
