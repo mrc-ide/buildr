@@ -71,6 +71,8 @@ def log(package_id):
 @app.route('/download/<package_id>/<package_type>')
 def download(package_id, package_type):
     check_package_type(package_type)
+    if package_type == 'lib':
+        raise InvalidUsage('Invalid package type', status_code=400)
     path = os.path.join(app.buildr.paths[package_type], package_id)
     if not os.path.exists(path):
         return err_not_found()

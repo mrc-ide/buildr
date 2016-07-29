@@ -49,7 +49,7 @@ def process(id, args, log):
 
 
 def package_types():
-    return ('source', 'binary')
+    return ('source', 'binary', 'lib')
 
 
 def is_exe(fpath):
@@ -117,7 +117,7 @@ class Buildr:
             if package_type == 'source':
                 pkgs = [read_file(os.path.join(self.paths['filename'], i))
                         for i in pkgs]
-            else:
+            elif package_type == 'binary':
                 pkgs = [self.package_info(i)['filename_binary']
                         for i in pkgs]
         return pkgs

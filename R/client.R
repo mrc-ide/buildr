@@ -41,6 +41,12 @@ buildr_available <- function(host, port=8765) {
       buildr_http_client_response(r, empty=character(0))
     },
 
+    installed=function() {
+      r <- httr::GET(file.path(self$base_url, "packages", "lib"),
+                     query=list(translate="false"))
+      buildr_http_client_response(r, empty=character(0))
+    },
+
     status=function(package_id=NULL) {
       if (is.null(package_id)) {
         package_id <- "queue"
