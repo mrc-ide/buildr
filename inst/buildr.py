@@ -242,8 +242,10 @@ class Buildr:
             self.active['log_handle'].close()
         id = self.active['id']
         if id != 'upgrade' and p != 0:
+            filename_src = read_file(os.path.join(self.paths['filename'], id))
             with open(os.path.join(self.paths['info'], id), 'w') as file:
-                file.write(json.dumps({'id': id, 'hash': id}))
+                file.write(json.dumps({'id': id, 'hash': id,
+                                       'filename_source': filename_src}))
         self.active = None
 
     def log(self, id, message):

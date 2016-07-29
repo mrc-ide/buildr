@@ -82,9 +82,11 @@ buildr_available <- function(host, port=8765) {
         stop("dest must be a directory")
       }
       type <- if (binary) "binary" else "source"
+      info <- self$info(package_id)
+      filename <- info[[paste0("filename_", type)]]
       r <- httr::GET(file.path(self$base_url, "download", package_id, type))
       dat <- buildr_http_client_response(r)
-      ret <- file.path(dest, self$info(package_id)[[paste0("filename_", type)]])
+      ret <- file.path(dest, filename)
       writeBin(dat, ret)
       ret
     },
