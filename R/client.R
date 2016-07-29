@@ -90,8 +90,14 @@ buildr_available <- function(host, port=8765) {
     },
 
     submit=function(filename) {
+      if (length(filename) != 1L) {
+        stop("Expected exactly one filename")
+      }
       if (!file.exists(filename)) {
         stop("Cannot find file at ", filename)
+      }
+      if (is_dir(filename)) {
+        stop("Please create a .tar.gz from this directory")
       }
       r <- httr::POST(file.path(self$base_url, "submit", basename(filename)),
                       body=httr::upload_file(filename))

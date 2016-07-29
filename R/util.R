@@ -10,3 +10,7 @@ vcapply <- function(X, FUN, ...) {
 `%or%` <- function(a, b) {
   if (is.null(a)) b else a
 }
+
+is_dir <- function(path) {
+  file.exists(path) && file.info(path, extra_cols=FALSE)$isdir
+}
