@@ -4,6 +4,21 @@
 
 A very simple minded build server, until [r-hub](https://github.com/r-hub) is working.  Don't use this for anything serious and use r-hub when it comes out because it's going to be way better.
 
+## Installation
+
+Either
+
+```r
+drat:::add("richfitz")
+install.packages("buildr")
+```
+
+or with devtools
+
+```r
+devtools::install_github("richfitz/buildr", upgrade=FALSE)
+```
+
 ## Using the client
 
 You need the hostname of the build server, and the port if it is running on a non-default port.  The simplest thing is to run:
@@ -11,10 +26,6 @@ You need the hostname of the build server, and the port if it is running on a no
 
 ```r
 res <- buildr::build_binaries("seagull_1.0.0.tar.gz", "localhost", port=9999L)
-```
-
-```
-## This is buildr
 ```
 
 ```
@@ -34,7 +45,7 @@ res
 ```
 
 ```
-## [1] "/tmp/RtmpeWfCkN/file501d779f5e4f/seagull_1.0.0_R_x86_64-pc-linux-gnu.tar.gz"
+## [1] "/tmp/Rtmp1A3jtq/file57141958fdf1/seagull_1.0.0_R_x86_64-pc-linux-gnu.tar.gz"
 ```
 
 which will submit the package to server and poll until it builds or fails.  By default the created binary file is copied into a temporary directory, but you can control this with the `dest` argument.  If the build fails, the log will be printed along with an id (see below).
@@ -74,7 +85,7 @@ id
 ```
 
 ```
-## [1] "fdcb0213e7e3e3058268ba926497fb89"
+## [1] "9c034fe385087d72dc6f238b49007358"
 ```
 
 The identifier is the md5 fingerprint of your source file, which you can also find with `tools::md5sum`:
@@ -86,7 +97,7 @@ tools::md5sum("seagull_1.0.0.tar.gz")
 
 ```
 ##               seagull_1.0.0.tar.gz
-## "fdcb0213e7e3e3058268ba926497fb89"
+## "9c034fe385087d72dc6f238b49007358"
 ```
 
 You can see source packages that the server knows about:
@@ -97,7 +108,7 @@ cl$packages()
 ```
 
 ```
-## [1] "fdcb0213e7e3e3058268ba926497fb89"
+## [1] "9c034fe385087d72dc6f238b49007358"
 ```
 
 To get the actual name of the source files, pass `translate=TRUE`:
@@ -130,7 +141,7 @@ filename <- cl$wait(id)
 ```
 
 ```
-## .......
+## ......
 ```
 
 ```r
@@ -138,7 +149,7 @@ filename
 ```
 
 ```
-## [1] "/tmp/RtmpeWfCkN/file501d641e49b9/seagull_1.0.0_R_x86_64-pc-linux-gnu.tar.gz"
+## [1] "/tmp/Rtmp1A3jtq/file57142660b806/seagull_1.0.0_R_x86_64-pc-linux-gnu.tar.gz"
 ```
 
 The return value here is the filename where the binary has been copied to.  You can also get this with:
@@ -149,7 +160,7 @@ cl$download(id)
 ```
 
 ```
-## [1] "/tmp/RtmpeWfCkN/file501d6626b6e0/seagull_1.0.0_R_x86_64-pc-linux-gnu.tar.gz"
+## [1] "/tmp/Rtmp1A3jtq/file57144dc00433/seagull_1.0.0_R_x86_64-pc-linux-gnu.tar.gz"
 ```
 
 (by default, both `wait` and `download` use a temporary directory but this is configurable with the `dest` argument).
@@ -163,7 +174,7 @@ cl$log(id)
 
 ```
 ## Installing dependencies: R6
-## Installing into library: /home/rich/Documents/src/buildr/tests/testthat/test_servers/tmp.MCqkwqsPZz/lib
+## Installing into library: /home/rich/Documents/src/buildr/tests/testthat/test_servers/tmp.4LxoFSwcOP/lib
 ## trying URL 'http://cran.rstudio.com/src/contrib/R6_2.1.2.tar.gz'
 ## Content type 'application/x-gzip' length 270461 bytes (264 KB)
 ## ==================================================
@@ -182,8 +193,8 @@ cl$log(id)
 ## * DONE (R6)
 ##
 ## The downloaded source packages are in
-## 	‘/tmp/RtmpqyPAtd/downloaded_packages’
-## Building into library: /home/rich/Documents/src/buildr/tests/testthat/test_servers/tmp.MCqkwqsPZz/lib
+## 	‘/tmp/RtmpMblyXQ/downloaded_packages’
+## Building into library: /home/rich/Documents/src/buildr/tests/testthat/test_servers/tmp.4LxoFSwcOP/lib
 ## * installing *source* package ‘seagull’ ...
 ## ** libs
 ## gcc -std=gnu99 -I/usr/share/R/include -DNDEBUG      -fpic  -Wall -Wextra -Wno-unused-parameter -c fcntl.c -o fcntl.o
@@ -195,7 +206,7 @@ cl$log(id)
 ##    int fd = *seagull_get_fd(extPtr, 1), ok, locked;
 ##                                             ^
 ## gcc -std=gnu99 -shared -L/usr/lib/R/lib -Wl,-Bsymbolic-functions -Wl,-z,relro -o seagull.so fcntl.o -L/usr/lib/R/lib -lR
-## installing to /home/rich/Documents/src/buildr/tests/testthat/test_servers/tmp.MCqkwqsPZz/lib/seagull/libs
+## installing to /home/rich/Documents/src/buildr/tests/testthat/test_servers/tmp.4LxoFSwcOP/lib/seagull/libs
 ## ** R
 ## ** inst
 ## ** preparing package for lazy loading
@@ -216,7 +227,7 @@ cl$packages(binary=TRUE)
 ```
 
 ```
-## [1] "fdcb0213e7e3e3058268ba926497fb89"
+## [1] "9c034fe385087d72dc6f238b49007358"
 ```
 
 ```r
