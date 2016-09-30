@@ -10,3 +10,4 @@
 ^inst/*\.pyc$
 ^tests/testthat/test_servers$
 ^seagull_.*\.tar\.gz$
+^docker$
