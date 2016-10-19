@@ -215,3 +215,8 @@ parse_queue_log <- function(x) {
              message=trimws(sub(re, "\\3", x)),
              stringsAsFactors=FALSE)
 }
+
+buildr_reset <- function(host, port) {
+  r <- httr::PATCH(sprintf("http://%s:%d/reset", host, port))
+  buildr_http_client_response(r)
+}

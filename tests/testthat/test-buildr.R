@@ -65,8 +65,7 @@ test_that("reset works", {
 
   cl <- buildr_client("localhost", 9999L)
   expect_true(length(cl$packages()) > 0L)
-  r <- httr::PATCH(file.path(cl$base_url, "reset"))
-  expect_true(buildr_http_client_response(r))
+  expect_true(buildr_reset("localhost", 9999L))
   wait_until_finished(cl, 30, 1)
   expect_match(cl$ping(), "^This is buildr")
   expect_equal(cl$packages(), character(0))
