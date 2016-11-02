@@ -16,7 +16,8 @@
 ##'
 ##' @export
 ##' @return A character vector of filenames
-build_binaries <- function(filenames, host, port=8765, ...) {
+build_binaries <- function(filenames, host, port=8765, ...,
+                           dest = tempfile()) {
   if (identical(host, FALSE)) {
     ## This might not do the best thing with stdout.
     ##
@@ -24,6 +25,46 @@ build_binaries <- function(filenames, host, port=8765, ...) {
     ## in the server) so that the correct type is always created.
     return(vcapply(filenames, do_build_binary, dest))
   }
-  cl <- buildr_client(host, port)
-  cl$build(filenames, ...)
+  buildr_client(host, port)$build(filenames, ...)
+}
+
+order_packages <- function(filenames) {
+  desc <- lapply(filenames, extract_DESCRIPTION)
+  name <- vcapply(desc, function(x) as.vector(x[, "Package"]))
+  names(desc) <- name
+  deps <- lapply(desc, get_deps, FALSE)
+  filenames[match(topological_order(deps), name)]
+}
+
+## This comes from odin:
+topological_order <- function(graph) {
+  no_dep <- lengths(graph) == 0L
+  graph_sorted <- names(no_dep[no_dep])
+  graph <- graph[!no_dep]
+
+  while (length(graph) > 0L) {
+    acyclic <- FALSE
+    for (i in seq_along(graph)) {
+      edges <- graph[[i]]
+      if (!any(edges %in% names(graph))) {
+        acyclic <- TRUE
+        graph_sorted <- c(graph_sorted, names(graph[i]))
+        graph <- graph[-i]
+        break
+      }
+    }
+    if (!acyclic) {
+      f <- function(x) {
+        y <- graph[[x]]
+        i <- vlapply(graph[y], function(el) x %in% el)
+        sprintf("\t%s: depends on %s", x, y[i])
+      }
+      err <- intersect(edges, names(graph))
+      stop(sprintf("A cyclic dependency detected for %s:\n%s",
+                   paste(err, collapse=", "),
+                   paste(vcapply(err, f), collapse="\n")), call.=FALSE)
+    }
+  }
+
+  graph_sorted
 }

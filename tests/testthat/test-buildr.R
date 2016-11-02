@@ -66,7 +66,31 @@ test_that("reset works", {
   cl <- buildr_client("localhost", 9999L)
   expect_true(length(cl$packages()) > 0L)
   expect_true(buildr_reset("localhost", 9999L))
-  wait_until_finished(cl, 30, 1)
   expect_match(cl$ping(), "^This is buildr")
   expect_equal(cl$packages(), character(0))
+})
+
+test_that("jeff", {
+  expect_true(buildr_reset("localhost", 9999L))
+  expect_match(cl$ping(), "^This is buildr")
+  expect_equal(cl$packages(), character(0))
+
+  cl <- buildr_client("localhost", 9999L)
+  expect_true(buildr_reset("localhost", 9999L))
+  expect_match(cl$ping(), "^This is buildr")
+  expect_equal(cl$packages(), character(0))
+
+  filenames <- dir("jeff", full.names = TRUE)
+
+  ids <- vcapply(filenames, cl$submit, build = FALSE)
+  expect_equal(sort(cl$packages(FALSE, TRUE)), sort(basename(filenames)))
+  expect_equal(cl$packages(TRUE, TRUE), character(0))
+  expect_equal(cl$status(), character(0))
+
+  id <- cl$batch(ids)
+  ans <- cl$wait(id)
+  expect_true(all(file.exists(ans)))
+
+  res <- build_binaries(filenames, "localhost", 9999L)
+  expect_equal(basename(res), basename(ans))
 })

@@ -31,6 +31,8 @@ def packages(package_type):
 def status(package_id):
     if package_id == 'queue':
         ret = app.buildr.queue_status()
+    elif package_id.find(',') > 0:
+        ret = [app.buildr.package_status(i) for i in package_id.split(',')]
     else:
         ret = app.buildr.package_status(package_id)
     return flask.jsonify(ret)
@@ -81,13 +83,25 @@ def download(package_id, package_type):
 
 @app.route('/submit/<package_name>', methods=['POST'])
 def submit(package_name):
+    build = flask.request.args.get('build')
+    queue = build is None or build.lower() != 'false'
     tmpfile = os.path.join(app.buildr.paths['root'], 'incoming',
                            secure_filename(os.path.basename(package_name)))
     with open(tmpfile, 'wb') as file:
         file.write(flask.request.data)
-    package_id = app.buildr.queue_build(tmpfile)
+    package_id = app.buildr.queue_submit(tmpfile, queue)
     os.remove(tmpfile)
     return flask.jsonify(package_id)
+
+@app.route('/batch', methods = ['POST'])
+def batch():
+    ids = flask.request.get_json()
+    src = app.buildr.package_list('source', False)
+    if len(ids) == 0 or not all(i in src for i in ids):
+        return err_not_found()
+    package_ids = ','.join(ids)
+    app.buildr.queue_add(package_ids)
+    return flask.jsonify(package_ids)
 
 @app.route('/upgrade', methods=['PATCH'])
 def upgrade():

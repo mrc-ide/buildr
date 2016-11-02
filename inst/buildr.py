@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import time
+import re
 
 # All the R stuff will be done async.  So we'll keep a queue of things
 # to run and keep track of when it has completed, while avoiding
@@ -150,7 +151,7 @@ class Buildr:
     def queue_status(self):
         return self.queue
 
-    def queue_build(self, filename):
+    def queue_submit(self, filename, queue):
         package_id = md5sum(filename)
         with open(os.path.join(self.paths['filename'], package_id), 'w') as f:
             f.write(os.path.basename(filename))
@@ -162,16 +163,20 @@ class Buildr:
             self.log(package_id, 'skipping')
         else:
             shutil.copyfile(filename, filename_source)
-            self.log(package_id, 'queuing')
-            self.queue.append(package_id)
-            # clean up any previous attempts, as these will confuse clients
-            path_info = os.path.join(self.paths['info'], package_id)
-            path_log = os.path.join(self.paths['log'], package_id)
-            if os.path.exists(path_info):
-                os.remove(path_info)
-            if os.path.exists(path_log):
-                os.remove(path_log)
+            if queue:
+                self.queue_add(package_id)
         return package_id
+
+    def queue_add(self, package_id):
+        # clean up any previous attempts, as these will confuse clients
+        path_info = os.path.join(self.paths['info'], package_id)
+        path_log = os.path.join(self.paths['log'], package_id)
+        if os.path.exists(path_info):
+            os.remove(path_info)
+        if os.path.exists(path_log):
+            os.remove(path_log)
+        self.log(package_id, 'queuing')
+        self.queue.append(package_id)
 
     def queue_special(self, special):
         run = False
@@ -241,11 +246,15 @@ class Buildr:
         if self.active['log_handle']:
             self.active['log_handle'].close()
         id = self.active['id']
+        batch = id.find(',') > 0
+        if batch:
+            split_logs(self.paths['log'], id)
         if id != 'upgrade' and p != 0:
-            filename_src = read_file(os.path.join(self.paths['filename'], id))
-            with open(os.path.join(self.paths['info'], id), 'w') as file:
-                file.write(json.dumps({'id': id, 'hash': id,
-                                       'filename_source': filename_src}))
+            for i in id.split(','):
+                fsrc = read_file(os.path.join(self.paths['filename'], id))
+                with open(os.path.join(self.paths['info'], id), 'w') as file:
+                    file.write(json.dumps({'id': id, 'hash': id,
+                                           'filename_source': fsrc}))
         self.active = None
 
     def log(self, id, message):
@@ -258,3 +267,21 @@ class Buildr:
 def read_file(filename):
     with open(filename, 'r') as f:
         return f.read()
+
+def read_lines(filename):
+    with open(filename, 'r') as f:
+        return f.readlines()
+
+def split_logs(path, id):
+    path_log = os.path.join(path, id)
+    log = read_lines(path_log)
+    pat = re.compile('^BUILDR: ([a-f0-9]+) ')
+    res = []
+    for i, l in enumerate(log):
+        m = pat.match(l)
+        if m:
+            res.append((i, m.group(1)))
+    res.append((len(log), None))
+    for i in xrange(len(res) - 1):
+        with open(os.path.join(path, res[i][1]), 'w') as logfile:
+            logfile.write(''.join(log[res[i][0]:res[i + 1][0]]))

@@ -1,6 +1,6 @@
 ## This is the main entry point that the script will use.
-build_binary <- function(filename, dest, lib=.libPaths()[[1]]) {
-  install_deps(filename, lib=lib)
+build_binary <- function(filename, dest, lib = .libPaths()[[1]]) {
+  install_deps(filename, lib = lib)
   do_build_binary(filename, dest, lib)
 }
 
