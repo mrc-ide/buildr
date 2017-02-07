@@ -56,7 +56,7 @@ topological_order <- function(graph) {
     if (!acyclic) {
       f <- function(x) {
         y <- graph[[x]]
-        i <- vlapply(graph[y], function(el) x %in% el)
+        i <- vapply(graph[y], function(el) x %in% el, logical(1))
         sprintf("\t%s: depends on %s", x, y[i])
       }
       err <- intersect(edges, names(graph))

@@ -153,7 +153,7 @@ buildr_available <- function(host, port=8765) {
         message(sprintf("building %d packages", length(filenames)))
         package_ids <- vcapply(filenames, self$submit, build = FALSE,
                                USE.NAMES = FALSE)
-        batch_id <- cl$batch(package_ids)
+        batch_id <- self$batch(package_ids)
         self$wait(batch_id, dest, poll, timeout, verbose,
                   log_on_failure)
       }
@@ -276,7 +276,7 @@ client_wait_batch <- function(cl, package_id,
   times_up <- time_checker(timeout)
   ok <- rep(FALSE, length(package_ids))
   repeat {
-    status <- cl$status(id)
+    status <- cl$status(package_id)
     done <- status %in% c("COMPLETE", "ERROR")
     if (verbose) {
       for (i in which(done & !ok)) {

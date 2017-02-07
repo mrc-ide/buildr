@@ -71,11 +71,15 @@ test_that("reset works", {
 })
 
 test_that("jeff", {
+  if (!file.exists("jeff")) {
+    skip("internal test")
+  }
   expect_true(buildr_reset("localhost", 9999L))
+  cl <- buildr_client("localhost", 9999L)
+
   expect_match(cl$ping(), "^This is buildr")
   expect_equal(cl$packages(), character(0))
 
-  cl <- buildr_client("localhost", 9999L)
   expect_true(buildr_reset("localhost", 9999L))
   expect_match(cl$ping(), "^This is buildr")
   expect_equal(cl$packages(), character(0))

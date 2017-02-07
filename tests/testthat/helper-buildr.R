@@ -6,12 +6,10 @@ skip_if_no_buildr <- function(port=8765) {
 }
 
 download_file <- function(url, dest=tempfile(), overwrite=FALSE) {
-  content <- httr::GET(url,
-                       httr::write_disk(dest, overwrite),
-                       httr::progress("down"))
-  cat("\n")
-  code <- httr::status_code(content)
-  if (code >= 300L) {
+  code <- download.file(
+    "https://github.com/richfitz/kitten/archive/master.tar.gz",
+    dest)
+  if (code != 0) {
     stop(DownloadError(url, code))
   }
   dest
