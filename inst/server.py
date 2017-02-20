@@ -61,7 +61,7 @@ def log(package_id):
     n = flask.request.args.get('n')
     if n is not None:
         n = int(n)
-    filename = app.buildr.paths['log'] + '/' + package_id
+    filename = app.buildr.logs[package_id]
     if not os.path.exists(filename):
         return err_not_found()
     with open(filename, 'r') as f:

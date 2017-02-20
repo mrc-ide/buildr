@@ -100,6 +100,7 @@ class Buildr:
         self.paths = paths(root)
         self.Rscript = find_Rscript(R)
         self.Rversion = rversion(self.Rscript)
+        self.logs = {'queue': os.path.join(self.paths['log'], 'queue')}
         self.reset()
 
     def reset(self, async=False):
@@ -170,7 +171,13 @@ class Buildr:
     def queue_add(self, package_id):
         # clean up any previous attempts, as these will confuse clients
         path_info = os.path.join(self.paths['info'], package_id)
-        path_log = os.path.join(self.paths['log'], package_id)
+        batch = package_id.find(',') > 0
+        if batch:
+            path_log_base = "batch_%d" % (len(self.logs) + 1)
+        else:
+            path_log_base = package_id
+        path_log = os.path.join(self.paths['log'], path_log_base)
+        self.logs[package_id] = path_log
         if os.path.exists(path_info):
             os.remove(path_info)
         if os.path.exists(path_log):
@@ -216,7 +223,7 @@ class Buildr:
                     clean_path(self.paths['binary']),
                     clean_path(self.paths['info']),
                     clean_path(self.paths['lib']))]
-        logfile = os.path.join(self.paths['log'], package_id)
+        logfile = self.logs[package_id]
         return process(package_id, args, logfile)
 
     def run(self):
@@ -248,7 +255,7 @@ class Buildr:
         id = self.active['id']
         batch = id.find(',') > 0
         if batch:
-            split_logs(self.paths['log'], id)
+            split_logs(self.logs[id])
         if id != 'upgrade' and p != 0:
             for i in id.split(','):
                 fsrc = read_file(os.path.join(self.paths['filename'], id))
@@ -272,8 +279,8 @@ def read_lines(filename):
     with open(filename, 'r') as f:
         return f.readlines()
 
-def split_logs(path, id):
-    path_log = os.path.join(path, id)
+def split_logs(path_log):
+    path = os.path.dirname(path_log)
     log = read_lines(path_log)
     pat = re.compile('^BUILDR: ([a-f0-9]+) ')
     res = []
