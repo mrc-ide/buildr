@@ -12,5 +12,5 @@ vcapply <- function(X, FUN, ...) {
 }
 
 is_dir <- function(path) {
-  file.exists(path) && file.info(path, extra_cols=FALSE)$isdir
+  file.exists(path) && file.info(path, extra_cols = FALSE)$isdir
 }

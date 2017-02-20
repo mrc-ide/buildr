@@ -5,66 +5,66 @@
 ##' @param port Port that the buildr server is running on (the default
 ##'   here matches the buildr server default)
 ##' @export
-buildr_client <- function(host, port=8765) {
+buildr_client <- function(host, port = 8765) {
   .R6_buildr_http_client$new(host, port)
 }
 
 ##' @export
 ##' @rdname buildr_client
-buildr_available <- function(host, port=8765) {
-  res <- try(buildr_client(host, port)$ping(), silent=TRUE)
+buildr_available <- function(host, port = 8765) {
+  res <- try(buildr_client(host, port)$ping(), silent = TRUE)
   !inherits(res, "try-error") && any(grepl("buildr", res))
 }
 
 ##' @importFrom R6 R6Class
 .R6_buildr_http_client <- R6::R6Class(
   "buildr_http_client",
-  public=list(
-    base_url=NULL,
-    initialize=function(host, port) {
+  public = list(
+    base_url = NULL,
+    initialize = function(host, port) {
       self$base_url <- sprintf("http://%s:%d", host, port)
     },
 
-    ping=function() {
+    ping = function() {
       buildr_http_client_response(httr::GET(self$base_url))
     },
 
-    active=function() {
+    active = function() {
       buildr_http_client_response(httr::GET(file.path(self$base_url, "active")),
-                                  empty=NULL)
+                                  empty = NULL)
     },
 
-    packages=function(binary=FALSE, translate=FALSE) {
+    packages = function(binary = FALSE, translate = FALSE) {
       type <- if (binary) "binary" else "source"
-      query <- list(translate = tolower(as.character(translate)))
-      r <- httr::GET(file.path(self$base_url, "packages", type), query=query)
-      buildr_http_client_response(r, empty=character(0))
+      query <- list(translate  =  tolower(as.character(translate)))
+      r <- httr::GET(file.path(self$base_url, "packages", type), query = query)
+      buildr_http_client_response(r, empty = character(0))
     },
 
-    installed=function() {
+    installed = function() {
       r <- httr::GET(file.path(self$base_url, "packages", "lib"),
-                     query=list(translate="false"))
-      buildr_http_client_response(r, empty=character(0))
+                     query = list(translate = "false"))
+      buildr_http_client_response(r, empty = character(0))
     },
 
-    status=function(package_id=NULL) {
+    status = function(package_id = NULL) {
       if (is.null(package_id)) {
         package_id <- "queue"
       }
       r <- httr::GET(file.path(self$base_url, "status", package_id))
-      buildr_http_client_response(r, empty=character(0))
+      buildr_http_client_response(r, empty = character(0))
     },
 
-    source_info=function(package_id) {
+    source_info = function(package_id) {
       r <- httr::GET(file.path(self$base_url, "source_info", package_id))
       buildr_http_client_response(r)
     },
 
-    filename=function(package_id) {
+    filename = function(package_id) {
       self$source_info(package_id)$filename_source
     },
 
-    info=function(package_id) {
+    info = function(package_id) {
       r <- httr::GET(file.path(self$base_url, "info", package_id))
       if (httr::status_code(r) == 202) {
         NULL
@@ -73,9 +73,9 @@ buildr_available <- function(host, port=8765) {
       }
     },
 
-    log=function(package_id, n=NULL) {
+    log = function(package_id, n = NULL) {
       query <- if (is.null(n)) NULL else list(n = n)
-      r <- httr::GET(file.path(self$base_url, "log", package_id), query=query)
+      r <- httr::GET(file.path(self$base_url, "log", package_id), query = query)
       log <- buildr_http_client_response(r)
       if (package_id == "queue") {
         log <- parse_queue_log(log)
@@ -85,9 +85,9 @@ buildr_available <- function(host, port=8765) {
       log
     },
 
-    download=function(package_id, dest=tempfile(), binary=TRUE) {
+    download = function(package_id, dest = tempfile(), binary = TRUE) {
       dir.create(dest, FALSE, TRUE)
-      if (!file.info(dest, extra_cols=FALSE)[["isdir"]]) {
+      if (!file.info(dest, extra_cols = FALSE)[["isdir"]]) {
         stop("dest must be a directory")
       }
       type <- if (binary) "binary" else "source"
@@ -100,7 +100,7 @@ buildr_available <- function(host, port=8765) {
       ret
     },
 
-    submit=function(filename, build = TRUE) {
+    submit = function(filename, build = TRUE) {
       if (length(filename) != 1L) {
         stop("Expected exactly one filename")
       }
@@ -116,14 +116,14 @@ buildr_available <- function(host, port=8765) {
       buildr_http_client_response(r)
     },
 
-    upgrade=function() {
+    upgrade = function() {
       ## This should possibly be key protected I think?
       r <- httr::PATCH(file.path(self$base_url, "upgrade"))
       buildr_http_client_response(r)
     },
 
-    wait=function(package_id, dest=tempfile(), poll=1, timeout=600,
-                  verbose=TRUE, log_on_failure=TRUE) {
+    wait = function(package_id, dest = tempfile(), poll = 1, timeout = 600,
+                    verbose = TRUE, log_on_failure = TRUE) {
       batch <- grepl(",", package_id, fixed = TRUE)
       fn <- if (batch) client_wait_batch else client_wait_1
       fn(self, package_id, dest, poll, timeout, verbose, log_on_failure)
@@ -137,11 +137,11 @@ buildr_available <- function(host, port=8765) {
       buildr_http_client_response(r)
     },
 
-    build=function(filenames, dest=tempfile(), poll=1, timeout=600,
-                   verbose=TRUE, log_on_failure=TRUE) {
+    build = function(filenames, dest = tempfile(), poll = 1, timeout = 600,
+                     verbose = TRUE, log_on_failure = TRUE) {
       ok <- file.exists(filenames)
       if (!all(ok)) {
-        stop("files not found: ", paste(filenames[!ok], collapse=", "))
+        stop("files not found: ", paste(filenames[!ok], collapse = ", "))
       }
 
       if (length(filenames) == 1L) {
@@ -168,41 +168,41 @@ print.build_log <- function(x, ...) {
   writeLines(x)
 }
 
-buildr_http_client_response <- function(r, empty=list()) {
+buildr_http_client_response <- function(r, empty = list()) {
   httr::stop_for_status(r)
   type <- httr::headers(r)$"content-type"
   if (type == "application/json") {
-    x <- httr::content(r, "text", encoding="UTF-8")
+    x <- httr::content(r, "text", encoding = "UTF-8")
     from_json(x, empty)
   } else if (type == "application/octet-stream") {
     httr::content(r, "raw")
   } else if (type == "text/plain") {
-    httr::content(r, "text", encoding="UTF-8")
+    httr::content(r, "text", encoding = "UTF-8")
   } else {
     stop("Unexpected response type")
   }
 }
 
-from_json <- function(x, empty=list()) {
+from_json <- function(x, empty = list()) {
   if (grepl("^\\s*\\[\\]\\s*", x)) empty else jsonlite::fromJSON(x)
 }
 
 time_checker <- function(timeout) {
   t0 <- Sys.time()
-  timeout <- as.difftime(timeout, units="secs")
+  timeout <- as.difftime(timeout, units = "secs")
   function() {
     Sys.time() - t0 > timeout
   }
 }
 
 parse_queue_log <- function(x) {
-  x <- strsplit(x, "\n", fixed=TRUE)[[1]]
+  x <- strsplit(x, "\n", fixed = TRUE)[[1]]
   re <- "^\\[([^\\]+)\\] \\(([^)]+)\\) (.*)$"
   all(grepl(re, x))
-  data.frame(time=trimws(sub(re, "\\1", x)),
-             id=trimws(sub(re, "\\2", x)),
-             message=trimws(sub(re, "\\3", x)),
-             stringsAsFactors=FALSE)
+  data.frame(time = trimws(sub(re, "\\1", x)),
+             id = trimws(sub(re, "\\2", x)),
+             message = trimws(sub(re, "\\3", x)),
+             stringsAsFactors = FALSE)
 }
 
 buildr_reset <- function(host, port, timeout = 60, poll = 1) {
@@ -224,7 +224,7 @@ wait_until_finished <- function(cl, timeout, poll) {
     } else if (times_up()) {
       stop("server never finished in time :(")
     } else {
-      message("*", appendLF=FALSE)
+      message("*", appendLF = FALSE)
       Sys.sleep(poll)
     }
   }
@@ -239,7 +239,7 @@ client_wait_1 <- function(cl, package_id,
     info <- cl$info(package_id)
     if (is.null(info)) {
       if (times_up()) {
-        log <- try(cat(cl$log(package_id)), silent=TRUE)
+        log <- try(cat(cl$log(package_id)), silent = TRUE)
         msg <- "Package not created in time"
         if (inherits(log, "try-error")) {
           msg <- paste(msg, "(and error getting log)")
@@ -247,13 +247,13 @@ client_wait_1 <- function(cl, package_id,
         stop(msg)
       }
       if (verbose) {
-        message(".", appendLF=FALSE)
+        message(".", appendLF = FALSE)
       }
       Sys.sleep(poll)
     } else if (is.null(info$filename_binary)) {
       if (log_on_failure) {
         log <- cl$log(package_id)
-        message(paste(log, collapse="\n"))
+        message(paste(log, collapse = "\n"))
         stop(sprintf("Build failed; see above for details (id: %s)",
                      package_id))
       } else {
@@ -292,7 +292,7 @@ client_wait_batch <- function(cl, package_id,
       stop("Packages not created in time")
     } else {
       if (verbose) {
-        message(".", appendLF=FALSE)
+        message(".", appendLF = FALSE)
       }
       Sys.sleep(poll)
     }
@@ -302,7 +302,7 @@ client_wait_batch <- function(cl, package_id,
   if (any(err)) {
     if (log_on_failure) {
       log <- lapply(package_ids[err], cl$log)
-      message(paste(log, collapse="\n"))
+      message(paste(log, collapse = "\n"))
       stop(sprintf("Build failed; see above for details (id: %s)",
                    paste(package_ids[err], collapse = ", ")))
     } else {

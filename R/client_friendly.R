@@ -16,7 +16,7 @@
 ##'
 ##' @export
 ##' @return A character vector of filenames
-build_binaries <- function(filenames, host, port=8765, ...,
+build_binaries <- function(filenames, host, port = 8765, ...,
                            dest = tempfile()) {
   if (identical(host, FALSE)) {
     ## This might not do the best thing with stdout.
@@ -61,8 +61,8 @@ topological_order <- function(graph) {
       }
       err <- intersect(edges, names(graph))
       stop(sprintf("A cyclic dependency detected for %s:\n%s",
-                   paste(err, collapse=", "),
-                   paste(vcapply(err, f), collapse="\n")), call.=FALSE)
+                   paste(err, collapse = ", "),
+                   paste(vcapply(err, f), collapse = "\n")), call. = FALSE)
     }
   }
 

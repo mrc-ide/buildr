@@ -4,7 +4,7 @@
 \alias{build_binaries}
 \title{Build a set of binaries, waiting until complete}
 \usage{
-build_binaries(filenames, host, port = 8765, ...)
+build_binaries(filenames, host, port = 8765, ..., dest = tempfile())
 }
 \arguments{
 \item{filenames}{Vector of filenames of the source packages}

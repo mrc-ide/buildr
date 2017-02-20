@@ -4,21 +4,22 @@ build_binary <- function(filename, dest, lib = .libPaths()[[1]]) {
   do_build_binary(filename, dest, lib)
 }
 
-install_deps <- function(filename, suggests=FALSE, ..., lib=.libPaths()[[1]]) {
+install_deps <- function(filename, suggests = FALSE, ...,
+                         lib = .libPaths()[[1]]) {
   r <- getOption("repos")
   r[["CRAN"]] <- "https://cran.rstudio.com"
-  oo <- options(repos=r)
+  oo <- options(repos = r)
   on.exit(options(oo))
   deps <- get_deps(extract_DESCRIPTION(filename), suggests)
   needed <- setdiff(deps, .packages(TRUE, union(lib, .libPaths())))
   if (length(needed) > 0L) {
-    message("Installing dependencies: ", paste(needed, collapse=", "))
+    message("Installing dependencies: ", paste(needed, collapse = ", "))
     message("Installing into library: ", lib)
-    install.packages(deps, ..., lib=lib)
+    install.packages(deps, ..., lib = lib)
   }
 }
 
-do_build_binary <- function(filename, dest, lib=.libPaths()[[1]]) {
+do_build_binary <- function(filename, dest, lib = .libPaths()[[1]]) {
   dir.create(dest, FALSE, TRUE)
   if (!file.info(dest)[["isdir"]]) {
     stop("dest must be a directory")
@@ -32,7 +33,7 @@ do_build_binary <- function(filename, dest, lib=.libPaths()[[1]]) {
   message("Building into library: ", lib)
   on.exit({
     setwd(owd)
-    unlink(workdir, recursive=TRUE)
+    unlink(workdir, recursive = TRUE)
   })
 
   message("Using R: ", normalizePath(R.home()))
@@ -49,25 +50,25 @@ do_build_binary <- function(filename, dest, lib=.libPaths()[[1]]) {
 }
 
 extract_DESCRIPTION <- function(filename) {
-  files <- untar(filename, list=TRUE)
-  desc <- grep("^[^/]+/DESCRIPTION$", files, value=TRUE)
+  files <- untar(filename, list = TRUE)
+  desc <- grep("^[^/]+/DESCRIPTION$", files, value = TRUE)
   if (length(desc) != 1L) {
     stop("Invalid package file")
   }
   tmp <- tempfile()
-  ok <- untar(filename, desc, exdir=tmp)
+  ok <- untar(filename, desc, exdir = tmp)
   if (!file.exists(file.path(tmp, desc))) {
     stop("Error extracting DESCRIPTION")
   }
-  on.exit(unlink(tmp, recursive=TRUE))
+  on.exit(unlink(tmp, recursive = TRUE))
   read.dcf(file.path(tmp, desc))
 }
 
 ## Based on drat builder:
-get_deps <- function(desc, suggests=FALSE) {
+get_deps <- function(desc, suggests = FALSE) {
   cols <- c("Depends", "Imports", "LinkingTo", if (suggests) "Suggests")
   jj <- intersect(cols, colnames(desc))
-  val <- unlist(strsplit(desc[, jj], ","), use.names=FALSE)
+  val <- unlist(strsplit(desc[, jj], ","), use.names = FALSE)
   val <- gsub("\\s.*", "", trimws(val))
-  val[val != "R"]
+  val[val !=  "R"]
 }
