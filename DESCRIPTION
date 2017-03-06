@@ -1,6 +1,6 @@
 Package: buildr
 Title: buildr
-Version: 0.0.2
+Version: 0.0.3
 Author: Rich FitzJohn
 Maintainer: Rich FitzJohn <rich.fitzjohn@gmail.com>
 Description: Simple package build server.
