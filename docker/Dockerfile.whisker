@@ -1,4 +1,5 @@
 FROM r-base:{{{r_version}}}
+# These are core system libs needed to get the system running
 RUN apt-get update && \
   apt-get install -y --no-install-recommends \
     libssl-dev \
@@ -6,7 +7,16 @@ RUN apt-get update && \
     python-dev \
     python-flask
 RUN Rscript -e 'install.packages(c("R6", "httr", "jsonlite"))'
+
+# These are *additional* libs needed to compile particular packages
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends \
+    libhiredis-dev \
+    libpq-dev
+
+# This moves the most often
 ADD buildr ./buildr
 RUN R CMD INSTALL buildr
+
 EXPOSE 8700
 ENTRYPOINT ["buildr/inst/run.py"]
