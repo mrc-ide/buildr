@@ -254,9 +254,10 @@ class Buildr:
             self.active['log_handle'].close()
         id = self.active['id']
         if id.find(',') > 0:
-            split_logs(self.logs[id])
-            for i in id.split(','):
-                self.logs[i] = os.path.join(self.paths['log'], i)
+            split = split_logs(self.logs[id])
+            if split:
+                for i in id.split(','):
+                    self.logs[i] = os.path.join(self.paths['log'], i)
         if id != 'upgrade' and p != 0:
             for i in id.split(','):
                 fsrc = read_file(os.path.join(self.paths['filename'], i))
@@ -282,14 +283,17 @@ def read_lines(filename):
 
 def split_logs(path_log):
     path = os.path.dirname(path_log)
-    log = read_lines(path_log)
-    pat = re.compile('^BUILDR: ([a-f0-9]+) ')
-    res = []
-    for i, l in enumerate(log):
-        m = pat.match(l)
-        if m:
-            res.append((i, m.group(1)))
-    res.append((len(log), None))
-    for i in xrange(len(res) - 1):
-        with open(os.path.join(path, res[i][1]), 'w') as logfile:
-            logfile.write(''.join(log[res[i][0]:res[i + 1][0]]))
+    exists = os.path.exists(path)
+    if exists:
+        log = read_lines(path_log)
+        pat = re.compile('^BUILDR: ([a-f0-9]+) ')
+        res = []
+        for i, l in enumerate(log):
+            m = pat.match(l)
+            if m:
+                res.append((i, m.group(1)))
+        res.append((len(log), None))
+        for i in xrange(len(res) - 1):
+            with open(os.path.join(path, res[i][1]), 'w') as logfile:
+                logfile.write(''.join(log[res[i][0]:res[i + 1][0]]))
+    return exists
