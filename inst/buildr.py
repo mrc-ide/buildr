@@ -253,14 +253,13 @@ class Buildr:
         if self.active['log_handle']:
             self.active['log_handle'].close()
         id = self.active['id']
-        batch = id.find(',') > 0
-        if batch:
+        if id.find(',') > 0:
             split_logs(self.logs[id])
         if id != 'upgrade' and p != 0:
             for i in id.split(','):
-                fsrc = read_file(os.path.join(self.paths['filename'], id))
-                with open(os.path.join(self.paths['info'], id), 'w') as file:
-                    file.write(json.dumps({'id': id, 'hash': id,
+                fsrc = read_file(os.path.join(self.paths['filename'], i))
+                with open(os.path.join(self.paths['info'], i), 'w') as file:
+                    file.write(json.dumps({'id': i, 'hash': i,
                                            'filename_source': fsrc}))
         self.active = None
 
