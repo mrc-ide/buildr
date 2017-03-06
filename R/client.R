@@ -73,9 +73,12 @@ buildr_available <- function(host, port = 8765) {
       }
     },
 
-    log = function(package_id, n = NULL) {
+    log = function(package_id, n = NULL, missing_ok = FALSE) {
       query <- if (is.null(n)) NULL else list(n = n)
       r <- httr::GET(file.path(self$base_url, "log", package_id), query = query)
+      if (missing_ok && httr::status_code(r) == 404) {
+        return(NULL)
+      }
       log <- buildr_http_client_response(r)
       if (package_id == "queue") {
         log <- parse_queue_log(log)
@@ -282,8 +285,8 @@ client_wait_batch <- function(cl, package_id,
       for (i in which(done & !ok)) {
         ok[i] <- TRUE
         nm <- cl$source_info(package_ids[[i]])$filename_source
-        message(sprintf("built %s (%d / %d done)",
-                        nm, sum(done), length(status)))
+        message(sprintf("built %s [%s] (%d / %d done)",
+                        nm, status[[i]], sum(done), length(status)))
       }
     }
     if (all(done)) {
@@ -301,8 +304,16 @@ client_wait_batch <- function(cl, package_id,
   err <- status == "ERROR"
   if (any(err)) {
     if (log_on_failure) {
-      log <- lapply(package_ids[err], cl$log)
-      message(paste(log, collapse = "\n"))
+      log <- lapply(package_ids[err],
+                    function(x) tryCatch(cl$log(x), error = function(e) NULL))
+      log <- lapply(package_ids[err], cl$log, missing_ok = TRUE)
+      log <- log[lengths(log) > 0]
+      if (length(log) == 0) {
+        ## not sure if this will ever happen, but in case getting all
+        ## the logs fails, then fall back on the overall build-log
+        log <- cl$log(package_id)
+      }
+      message(paste(log, collapse = "\n\n"))
       stop(sprintf("Build failed; see above for details (id: %s)",
                    paste(package_ids[err], collapse = ", ")))
     } else {
