@@ -49,6 +49,26 @@ test_that("buildr", {
   expect_true("skipping" %in% log$message[-(1:5)])
 })
 
+test_that("batch", {
+  path <- tempfile()
+  dir.create(path)
+  res <- download.packages(c("R6", "crayon"), path)
+
+  ans <- build_binaries(res[, 2], "localhost", 9999L)
+
+  cl <- buildr_client("localhost", 9999L)
+  id <- cl$log("queue", 1)$id
+  log <- cl$log(id)
+  expect_is(log, "build_log")
+
+  expect_equal(sum(grepl("^BUILDR", strsplit(log, "\n")[[1]])), 2L)
+  ids <- strsplit(id, ",", fixed = TRUE)[[1]]
+
+  log1 <- cl$log(ids[[1]])
+  expect_is(log1, "build_log")
+  expect_equal(sum(grepl("^BUILDR", strsplit(log1, "\n")[[1]])), 1L)
+})
+
 test_that("upgrade doesn't crash", {
   skip_on_travis()
   skip_if_no_buildr(9999L)

@@ -255,6 +255,8 @@ class Buildr:
         id = self.active['id']
         if id.find(',') > 0:
             split_logs(self.logs[id])
+            for i in id.split(','):
+                self.logs[i] = os.path.join(self.paths['log'], i)
         if id != 'upgrade' and p != 0:
             for i in id.split(','):
                 fsrc = read_file(os.path.join(self.paths['filename'], i))
