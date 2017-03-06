@@ -63,3 +63,44 @@ bootstrap <- function(lib) {
     file.copy(path, lib, recursive = TRUE)
   }
 }
+
+order_packages <- function(filenames) {
+  desc <- lapply(filenames, extract_DESCRIPTION)
+  name <- vcapply(desc, function(x) as.vector(x[, "Package"]))
+  names(desc) <- name
+  deps <- lapply(desc, get_deps, FALSE)
+  filenames[match(topological_order(deps), name)]
+}
+
+## This comes from odin:
+topological_order <- function(graph) {
+  no_dep <- lengths(graph) == 0L
+  graph_sorted <- names(no_dep[no_dep])
+  graph <- graph[!no_dep]
+
+  while (length(graph) > 0L) {
+    acyclic <- FALSE
+    for (i in seq_along(graph)) {
+      edges <- graph[[i]]
+      if (!any(edges %in% names(graph))) {
+        acyclic <- TRUE
+        graph_sorted <- c(graph_sorted, names(graph[i]))
+        graph <- graph[-i]
+        break
+      }
+    }
+    if (!acyclic) {
+      f <- function(x) {
+        y <- graph[[x]]
+        i <- vapply(graph[y], function(el) x %in% el, logical(1))
+        sprintf("\t%s: depends on %s", x, y[i])
+      }
+      err <- intersect(edges, names(graph))
+      stop(sprintf("A cyclic dependency detected for %s:\n%s",
+                   paste(err, collapse = ", "),
+                   paste(vcapply(err, f), collapse = "\n")), call. = FALSE)
+    }
+  }
+
+  graph_sorted
+}
