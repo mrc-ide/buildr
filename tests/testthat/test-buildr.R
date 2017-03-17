@@ -118,3 +118,20 @@ test_that("jeff", {
   res <- build_binaries(filenames, "localhost", 9999L)
   expect_equal(basename(res), basename(ans))
 })
+
+test_that("broken", {
+  skip_on_travis()
+  skip_if_no_buildr(9999L)
+
+  cl <- buildr_client("localhost", 9999L)
+  system2("R", c("CMD", "build", "broken"))
+  filename <- "broken_0.1.0.tar.gz"
+  on.exit(file.remove(filename))
+
+  package_id <- cl$submit("broken_0.1.0.tar.gz")
+  expect_error(cl$wait(package_id),
+               "Build failed; see above for details")
+  res <- cl$log(package_id)
+  expect_is(res, "build_log")
+  expect_match(res, "ERROR", all = FALSE, fixed = TRUE)
+})
