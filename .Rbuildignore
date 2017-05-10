@@ -12,3 +12,4 @@
 ^seagull_.*\.tar\.gz$
 ^docker$
 ^\.lintr$
+^setup\.md$
