@@ -9,14 +9,14 @@ A very simple minded build server, until [r-hub](https://github.com/r-hub) is wo
 Either
 
 ```r
-drat:::add("richfitz")
+drat:::add("mrc-ide")
 install.packages("buildr")
 ```
 
 or with devtools
 
 ```r
-devtools::install_github("richfitz/buildr", upgrade=FALSE)
+devtools::install_github("mrc-ide/buildr", upgrade=FALSE)
 ```
 
 ## Using the client

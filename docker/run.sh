@@ -14,4 +14,4 @@ DEST="${PWD}/build/${VERSION}"
 PORT="87${MAJOR}${MINOR}"
 mkdir -p $DEST
 
-docker run --rm -p ${PORT}:8700 -v ${DEST}:/build "richfitz/buildr:${VERSION}" --expose --root=/build --port=8700
+docker run --rm -p ${PORT}:8700 -v ${DEST}:/build "mrcide/buildr:${VERSION}" --expose --root=/build --port=8700

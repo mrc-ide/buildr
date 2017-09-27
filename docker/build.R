@@ -8,7 +8,7 @@ build.R <version> [--no-cache]' -> usage
   txt <- whisker::whisker.render(readLines("Dockerfile.whisker"),
                                  list(r_version = version))
 
-  tag <- paste0("richfitz/buildr:", version)
+  tag <- paste0("mrcide/buildr:", version)
 
   wd <- tempfile()
   dir.create(wd)
