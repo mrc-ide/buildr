@@ -4,6 +4,7 @@ RUN apt-get update && \
   apt-get install -y --no-install-recommends \
     libssl-dev \
     libcurl4-openssl-dev \
+    libnetcdf-dev \
     python-dev \
     python-flask
 RUN Rscript -e 'install.packages(c("R6", "httr", "jsonlite"))'
