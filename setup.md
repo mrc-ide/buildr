@@ -35,3 +35,8 @@ And one of
 
     "C:\Program Files\R\R-3.5.0\bin\R" CMD INSTALL q:\buildr
     Q:\buildr\inst\run.py --R "C:\Program Files\R\R-3.5.0\bin" --root 3.5.0 --expose --port 8735
+
+3.6:
+
+    "C:\Program Files\R\R-3.6.0\bin\R" CMD INSTALL q:\buildr
+    Q:\buildr\inst\run.py --R "C:\Program Files\R\R-3.6.0\bin" --root 3.6.0 --expose --port 8736
