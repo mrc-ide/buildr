@@ -4,11 +4,9 @@ R version 2 digit number (so 8730, 8731, etc).
 From the wikipedia port number page this seems like a reasonable
 group to use.
 
-For each R version, run
-
-```
-install.packages(c("R6", "httr", "jsonlite"))
-```
+* Download R from https://cran.r-project.org/bin/windows/base
+* Install following the defaults (it can be useful to make a desktop shortcut though and that is no longer the default)
+* Install packages by opening a new R session and running `install.packages(c("R6", "httr", "jsonlite"))`
 
 In separate cmd windows run:
 
@@ -35,3 +33,8 @@ And one of
 
     "C:\Program Files\R\R-3.5.0\bin\R" CMD INSTALL q:\buildr
     Q:\buildr\inst\run.py --R "C:\Program Files\R\R-3.5.0\bin" --root 3.5.0 --expose --port 8735
+
+3.6:
+
+    "C:\Program Files\R\R-3.6.0\bin\R" CMD INSTALL q:\buildr
+    Q:\buildr\inst\run.py --R "C:\Program Files\R\R-3.6.0\bin" --root 3.6.0 --expose --port 8736
