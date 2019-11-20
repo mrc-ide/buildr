@@ -31,10 +31,10 @@ And one of
 
 3.5:
 
-    "C:\Program Files\R\R-3.5.0\bin\R" CMD INSTALL q:\buildr
-    Q:\buildr\inst\run.py --R "C:\Program Files\R\R-3.5.0\bin" --root 3.5.0 --expose --port 8735
+    "C:\Program Files\R\R-3.5.3\bin\R" CMD INSTALL q:\buildr
+    Q:\buildr\inst\run.py --R "C:\Program Files\R\R-3.5.3\bin" --root 3.5.3 --expose --port 8735
 
 3.6:
 
-    "C:\Program Files\R\R-3.6.0\bin\R" CMD INSTALL q:\buildr
-    Q:\buildr\inst\run.py --R "C:\Program Files\R\R-3.6.0\bin" --root 3.6.0 --expose --port 8736
+    "C:\Program Files\R\R-3.6.1\bin\R" CMD INSTALL q:\buildr
+    Q:\buildr\inst\run.py --R "C:\Program Files\R\R-3.6.1\bin" --root 3.6.1 --expose --port 8736
