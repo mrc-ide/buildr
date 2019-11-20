@@ -1,6 +1,12 @@
 We'll adopt the convention that the port will be 87 followed by the
 R version 2 digit number (so 8730, 8731, etc).
 
+We require a python installation for the web server, currently python 2.
+
+* Install python from [the homepage](https://www.python.org/downloads/windows)
+* Add python [to the windows path](https://geek-university.com/python/add-python-to-the-windows-path/), e.g., using `c:\Python27` - do this at the *front* of the system path, not the user path. Add `c:\Python27\scripts` to use pip too because python packaging is fractally awful.
+* pip install flask
+
 From the wikipedia port number page this seems like a reasonable
 group to use.
 
